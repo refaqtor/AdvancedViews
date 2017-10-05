@@ -261,6 +261,8 @@ class Point:
             return True
         return False
 
+    def __repr__(self):
+        return '({}, {})'.format(self.x, self.y)
 
 class Rect:
     def __init__(self, top_left, bottom_right):
@@ -286,6 +288,8 @@ class Rect:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __repr__(self):
+        return '({}, {})'.format(self.top_left, self.bottom_right)
 
 @functools.total_ordering
 class Cell:
@@ -306,6 +310,9 @@ class Cell:
             return True
         return False
 
+    def __repr__(self):
+        return '(' + str(self.row) + ',' + str(self.column) + ')'
+
 
 class Table:
     def __init__(self):
@@ -317,13 +324,28 @@ class Table:
         Return the visual rect for the given table
         :return:
         """
-        return self.xAxis.visual_length(), self.yAxis.visual_length()
+        top_left = Point(0, 0)
+        bottom_right = Point(self.xAxis.visual_length(),
+                             self.yAxis.visual_length())
+        return Rect(top_left, bottom_right)
 
     def cells_in_visual_rect(self, rect):
         """
         Return the cells in the given visual rect
         """
+        x_min = max(rect.top_left.x, 0)
+        x_max = min(rect.bottom_right.x, self.xAxis.visual_length() - 1)
+        y_min = max(rect.top_left.y, 0)
+        y_max = min(rect.bottom_right.y, self.yAxis.visual_length() - 1)
+        column_min, _ = self.xAxis.visual_get(x_min)
+        column_max, _ = self.xAxis.visual_get(x_max)
+        row_min, _ = self.yAxis.visual_get(y_min)
+        row_max, _ = self.yAxis.visual_get(y_max)
         result = []
+        for c in range(column_min, column_max + 1):
+            for r in range(row_min, row_max + 1):
+                result.append(Cell(r, c))
+        result.sort()
         return result
 
 
@@ -332,10 +354,10 @@ class TableTest(unittest.TestCase):
         self.table = Table()
 
     def test_bounding_rect(self):
-        self.assertEqual(self.table.bounding_rect(), (0, 0))
+        self.assertEqual(self.table.bounding_rect(), Rect.from_xy(0, 0, 0, 0))
         self.table.xAxis.append(100)
         self.table.yAxis.append(50)
-        self.assertEqual(self.table.bounding_rect(), (100, 50))
+        self.assertEqual(self.table.bounding_rect(), Rect.from_xy(0, 0, 100, 50))
 
     def test_cells_in_rect(self):
         self.table.xAxis.append(100)
@@ -343,10 +365,11 @@ class TableTest(unittest.TestCase):
         self.table.yAxis.append(50)
         self.table.yAxis.append(50)
         self.table.yAxis.append(50)
-        self.assertEqual(self.table.bounding_rect(), (200, 150))
+        self.assertEqual(self.table.bounding_rect(), Rect.from_xy(0, 0, 200, 150))
         cells = self.table.cells_in_visual_rect(Rect.from_xy(0, 0, 200, 150))
-        self.assertEqual(cells, [Cell(0, 0), Cell(0, 1), Cell(0, 2),
-                                 Cell(1, 0), Cell(1, 1), Cell(1, 2)])
+        self.assertEqual(cells, [Cell(0, 0), Cell(0, 1),
+                                 Cell(1, 0), Cell(1, 1),
+                                 Cell(2, 0), Cell(2, 1)])
 
 
 if __name__ == '__main__':
