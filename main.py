@@ -281,6 +281,17 @@ class Rect:
     def from_point_and_size(top_left, width, height):
         return Rect(top_left, Point(top_left.x + width, top_left.y + height))
 
+    def intersection(self, other):
+        """
+        Return the intersection of this rect with other
+        """
+        if self.top_left.x > other.bottom_right.x \
+            or self.bottom_right.x < other.top_left.x \
+            or self.top_left.y > other.bottom_right.y \
+            or self.bottom_right.y > other.top_left.y:
+            return None
+        return None
+
     def __eq__(self, other):
         return self.top_left == other.top_left and \
                self.bottom_right == other.bottom_right
@@ -290,6 +301,14 @@ class Rect:
 
     def __repr__(self):
         return '({}, {})'.format(self.top_left, self.bottom_right)
+
+
+class RectTest(unittest.TestCase):
+    def test_intersection(self):
+        rect = Rect.from_xy(0, 0, 100, 100)
+        self.assertEqual(rect.intersection(Rect.from_xy(100, 100, 200, 200)), None)
+        self.assertEqual(rect.intersection(Rect.from_xy(50, 50, 100, 100)), Rect.from_xy(50, 50, 100, 100))
+
 
 @functools.total_ordering
 class Cell:
