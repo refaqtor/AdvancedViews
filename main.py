@@ -1,6 +1,6 @@
 import unittest
 import math
-import functools
+from functools import reduce, total_ordering
 
 
 class Range:
@@ -16,6 +16,14 @@ class Range:
         """
         self.num_elements = num_elements
         self.size = size
+
+    @property
+    def visual_length(self):
+        return self.num_elements * self.size
+
+    @visual_length.setter
+    def visual_length(self, value):
+        raise Exception('Range.visual_length is a readonly property')
 
     def __eq__(self, other):
         return self.num_elements == other.num_elements and self.size == other.size
@@ -51,6 +59,7 @@ class Axis:
         """
         if pos < 0:
             return False
+        
         i = 0
         for r in self.ranges:
             i += r.num_elements
@@ -78,10 +87,7 @@ class Axis:
         Return the number of elements contained in this Axis
         :return: Return the number of elements
         """
-        result = 0
-        for r in self.ranges:
-            result += r.num_elements
-        return result
+        return reduce(lambda tot, rng: tot + rng.num_elements, self.ranges, 0)
 
     @property
     def visual_length(self):
@@ -89,10 +95,8 @@ class Axis:
         Return the total visual length of the axis elements
         :return: The total visual length
         """
-        result = 0
-        for r in self.ranges:
-            result += r.size * r.num_elements
-        return result
+        return reduce(lambda tot, rng: tot + rng.size * rng.num_elements, self.ranges, 0)
+
 
     def get(self, pos):
         """
@@ -243,7 +247,7 @@ class AxisTest(unittest.TestCase):
         self.assertEqual(self.axis.ranges, [])
 
 
-@functools.total_ordering
+@total_ordering
 class Point:
     def __init__(self, x, y):
         self.x = x
@@ -410,7 +414,7 @@ class RectTest(unittest.TestCase):
         self.assertEqual(rect.bottom, 100)
 
 
-@functools.total_ordering
+@total_ordering
 class Cell:
     def __init__(self, row, column):
         self.row = row
@@ -457,10 +461,10 @@ class Table:
         """
         Return the cells in the given visual rect
         """
-        x_min = max(rect.top_left.x, 0)
-        x_max = min(rect.bottom_right.x, self.xAxis.visual_length - 1)
-        y_min = max(rect.top_left.y, 0)
-        y_max = min(rect.bottom_right.y, self.yAxis.visual_length - 1)
+        x_min = max(rect.left, 0)
+        x_max = min(rect.right, self.xAxis.visual_length - 1)
+        y_min = max(rect.top, 0)
+        y_max = min(rect.bottom, self.yAxis.visual_length - 1)
         column_min, _ = self.xAxis.visual_get(x_min)
         column_max, _ = self.xAxis.visual_get(x_max)
         row_min, _ = self.yAxis.visual_get(y_min)

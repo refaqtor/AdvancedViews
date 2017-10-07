@@ -1,0 +1,93 @@
+[1mdiff --git a/main.py b/main.py[m
+[1mindex 79aa1c5..95cfc8e 100644[m
+[1m--- a/main.py[m
+[1m+++ b/main.py[m
+[36m@@ -1,6 +1,6 @@[m
+ import unittest[m
+ import math[m
+[31m-import functools[m
+[32m+[m[32mfrom functools import reduce, total_ordering[m
+ [m
+ [m
+ class Range:[m
+[36m@@ -17,6 +17,14 @@[m [mclass Range:[m
+         self.num_elements = num_elements[m
+         self.size = size[m
+ [m
+[32m+[m[32m    @property[m
+[32m+[m[32m    def visual_length(self):[m
+[32m+[m[32m        return self.num_elements * self.size[m
+[32m+[m
+[32m+[m[32m    @visual_length.setter[m
+[32m+[m[32m    def visual_length(self, value):[m
+[32m+[m[32m        raise Exception('Range.visual_length is a readonly property')[m
+[32m+[m
+     def __eq__(self, other):[m
+         return self.num_elements == other.num_elements and self.size == other.size[m
+ [m
+[36m@@ -51,6 +59,7 @@[m [mclass Axis:[m
+         """[m
+         if pos < 0:[m
+             return False[m
+[32m+[m[41m        [m
+         i = 0[m
+         for r in self.ranges:[m
+             i += r.num_elements[m
+[36m@@ -78,10 +87,7 @@[m [mclass Axis:[m
+         Return the number of elements contained in this Axis[m
+         :return: Return the number of elements[m
+         """[m
+[31m-        result = 0[m
+[31m-        for r in self.ranges:[m
+[31m-            result += r.num_elements[m
+[31m-        return result[m
+[32m+[m[32m        return reduce(lambda tot, rng: tot + rng.num_elements, self.ranges, 0)[m
+ [m
+     @property[m
+     def visual_length(self):[m
+[36m@@ -89,10 +95,8 @@[m [mclass Axis:[m
+         Return the total visual length of the axis elements[m
+         :return: The total visual length[m
+         """[m
+[31m-        result = 0[m
+[31m-        for r in self.ranges:[m
+[31m-            result += r.size * r.num_elements[m
+[31m-        return result[m
+[32m+[m[32m        return reduce(lambda tot, rng: tot + rng.size * rng.num_elements, self.ranges, 0)[m
+[32m+[m
+ [m
+     def get(self, pos):[m
+         """[m
+[36m@@ -243,7 +247,7 @@[m [mclass AxisTest(unittest.TestCase):[m
+         self.assertEqual(self.axis.ranges, [])[m
+ [m
+ [m
+[31m-@functools.total_ordering[m
+[32m+[m[32m@total_ordering[m
+ class Point:[m
+     def __init__(self, x, y):[m
+         self.x = x[m
+[36m@@ -410,7 +414,7 @@[m [mclass RectTest(unittest.TestCase):[m
+         self.assertEqual(rect.bottom, 100)[m
+ [m
+ [m
+[31m-@functools.total_ordering[m
+[32m+[m[32m@total_ordering[m
+ class Cell:[m
+     def __init__(self, row, column):[m
+         self.row = row[m
+[36m@@ -457,10 +461,10 @@[m [mclass Table:[m
+         """[m
+         Return the cells in the given visual rect[m
+         """[m
+[31m-        x_min = max(rect.top_left.x, 0)[m
+[31m-        x_max = min(rect.bottom_right.x, self.xAxis.visual_length - 1)[m
+[31m-        y_min = max(rect.top_left.y, 0)[m
+[31m-        y_max = min(rect.bottom_right.y, self.yAxis.visual_length - 1)[m
+[32m+[m[32m        x_min = max(rect.left, 0)[m
+[32m+[m[32m        x_max = min(rect.right, self.xAxis.visual_length - 1)[m
+[32m+[m[32m        y_min = max(rect.top, 0)[m
+[32m+[m[32m        y_max = min(rect.bottom, self.yAxis.visual_length - 1)[m
+         column_min, _ = self.xAxis.visual_get(x_min)[m
+         column_max, _ = self.xAxis.visual_get(x_max)[m
+         row_min, _ = self.yAxis.visual_get(y_min)[m
