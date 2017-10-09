@@ -8,14 +8,22 @@ class Range:
     This class represents a range of element with the same size
     """
 
-    def __init__(self, num_elements, size):
+    def __init__(self, num_elements, element_visual_length):
         """
         Initialize the range with the given number of elements and size
         :param num_elements: The number of elements
-        :param size: The size of each element
+        :param element_visual_length: The length of each element
         """
         self.num_elements = num_elements
-        self.size = size
+        self.size = element_visual_length
+
+    @property
+    def element_visual_length(self):
+        return self.size
+
+    @property
+    def length(self):
+        return self.num_elements
 
     @property
     def visual_length(self):
@@ -59,7 +67,7 @@ class Axis:
         """
         if pos < 0:
             return False
-        
+
         i = 0
         for r in self.ranges:
             i += r.num_elements
@@ -97,7 +105,6 @@ class Axis:
         """
         return reduce(lambda tot, rng: tot + rng.size * rng.num_elements, self.ranges, 0)
 
-
     def get(self, pos):
         """
         Return the tuple (pos, size) at the given position
@@ -110,7 +117,7 @@ class Axis:
         for r in self.ranges:
             i += r.num_elements
             if pos < i:
-                return (pos, r.size)
+                return pos, r.size
         return None
 
     def visual_get(self, visual_pos):
@@ -121,17 +128,16 @@ class Axis:
         """
         if visual_pos < 0:
             return None
-        pos = 0
-        pip = 0
+        min_visual_pos = 0
+        num_elements = 0
         for r in self.ranges:
-            min = pos
-            max = min + r.num_elements * r.size
-            if min <= visual_pos and visual_pos < max:
-                visual_pos -= min
+            max_visual_pos = min_visual_pos + r.visual_length
+            if min_visual_pos <= visual_pos < max_visual_pos:
+                visual_pos -= min_visual_pos
                 index = math.floor(visual_pos / r.size)
-                return (pip + index, r.size)
-            pos = max
-            pip += r.num_elements
+                return num_elements + index, r.size
+            min_visual_pos = max_visual_pos
+            num_elements += r.num_elements
         return None
 
     def _fix_ranges(self):
@@ -270,6 +276,7 @@ class Point:
     def __repr__(self):
         return '({}, {})'.format(self.x, self.y)
 
+
 class Rect:
     def __init__(self, top_left, bottom_right):
         self.top_left = top_left
@@ -292,16 +299,16 @@ class Rect:
         Return the intersection of this rect with other
         """
         if self.top_left.x >= other.bottom_right.x \
-            or self.bottom_right.x <= other.top_left.x \
-            or self.top_left.y >= other.bottom_right.y \
-            or self.bottom_right.y <= other.top_left.y:
+                or self.bottom_right.x <= other.top_left.x \
+                or self.top_left.y >= other.bottom_right.y \
+                or self.bottom_right.y <= other.top_left.y:
             return None
         top_left = Point(max(self.top_left.x, other.top_left.x),
                          max(self.top_left.y, other.top_left.y))
         bottom_right = Point(min(self.bottom_right.x, other.bottom_right.x),
                              min(self.bottom_right.y, other.bottom_right.y))
         if top_left.x >= bottom_right.x \
-           or top_left.y >= bottom_right.y:
+                or top_left.y >= bottom_right.y:
             return None
         return Rect.from_points(top_left, bottom_right)
 
@@ -347,7 +354,7 @@ class Rect:
 
     @right.setter
     def right(self, value):
-        self.bottom_right.x = value    
+        self.bottom_right.x = value
 
     @property
     def top(self):
@@ -372,10 +379,9 @@ class Rect:
         self.bottom_right.y = value
 
     def __eq__(self, other):
-        if other is None:
-            return False
-        return self.top_left == other.top_left and \
-               self.bottom_right == other.bottom_right
+        return other \
+               and self.top_left == other.top_left \
+               and self.bottom_right == other.bottom_right
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -475,6 +481,7 @@ class Table:
                 result.append(Cell(r, c))
         result.sort()
         return result
+
 
 class TableTest(unittest.TestCase):
     def setUp(self):
