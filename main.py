@@ -1,5 +1,6 @@
 import unittest
 import math
+from typing import List, Tuple
 from functools import reduce, total_ordering
 
 
@@ -110,7 +111,7 @@ class Axis:
         """
         return reduce(lambda tot, rng: tot + rng.visual_length, self.ranges, 0)
 
-    def get(self, pos: int) -> (int, int):
+    def get(self, pos: int) -> Tuple[int, int]:
         """
         Return the tuple (pos, size) at the given position
         :param pos: The element position
@@ -125,7 +126,7 @@ class Axis:
                 return pos, r.element_visual_length
         return None
 
-    def visual_get(self, visual_pos: int) -> (int, int):
+    def visual_get(self, visual_pos: int) -> Tuple[int, int]:
         """
         Return the tuple (pos, size) at the given visual position
         :param visual_pos: The visual position
@@ -468,7 +469,7 @@ class Table:
     def bounding_rect(self, value):
         raise Exception('Bounding rect of Table is readonly')
 
-    def cells_in_visual_rect(self, rect: Rect) -> Rect:
+    def cells_in_visual_rect(self, rect: Rect) -> List[Cell]:
         """
         Return the cells in the given visual rect
         """
