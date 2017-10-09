@@ -472,14 +472,13 @@ class Table:
         """
         Return the cells in the given visual rect
         """
-        x_min = max(rect.left, 0)
-        x_max = min(rect.right, self.xAxis.visual_length - 1)
-        y_min = max(rect.top, 0)
-        y_max = min(rect.bottom, self.yAxis.visual_length - 1)
-        column_min, _ = self.xAxis.visual_get(x_min)
-        column_max, _ = self.xAxis.visual_get(x_max)
-        row_min, _ = self.yAxis.visual_get(y_min)
-        row_max, _ = self.yAxis.visual_get(y_max)
+        rect = rect.intersection(self.bounding_rect)
+        if rect is None:
+            return None
+        column_min, _ = self.xAxis.visual_get(rect.left)
+        column_max, _ = self.xAxis.visual_get(rect.right-1)
+        row_min, _ = self.yAxis.visual_get(rect.top)
+        row_max, _ = self.yAxis.visual_get(rect.bottom-1)
         result = []
         for c in range(column_min, column_max + 1):
             for r in range(row_min, row_max + 1):
@@ -506,6 +505,14 @@ class TableTest(unittest.TestCase):
         self.table.yAxis.append(50)
         self.assertEqual(self.table.bounding_rect, Rect.from_xy(0, 0, 200, 150))
         cells = self.table.cells_in_visual_rect(Rect.from_xy(0, 0, 200, 150))
+        self.assertEqual(cells, [Cell(0, 0), Cell(0, 1),
+                                 Cell(1, 0), Cell(1, 1),
+                                 Cell(2, 0), Cell(2, 1)])
+        cells = self.table.cells_in_visual_rect(Rect.from_xy(-20, -20, 220, 170))
+        self.assertEqual(cells, [Cell(0, 0), Cell(0, 1),
+                                 Cell(1, 0), Cell(1, 1),
+                                 Cell(2, 0), Cell(2, 1)])
+        cells = self.table.cells_in_visual_rect(Rect.from_xy(10, 10, 190, 140))
         self.assertEqual(cells, [Cell(0, 0), Cell(0, 1),
                                  Cell(1, 0), Cell(1, 1),
                                  Cell(2, 0), Cell(2, 1)])
