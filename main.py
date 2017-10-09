@@ -48,6 +48,24 @@ class Range:
         return not self.__eq__(other)
 
 
+class AxisGetResult:
+    def __init__(self, pos, visual_pos, visual_length):
+        self.pos = pos
+        self.visual_pos = visual_pos
+        self.visual_length = visual_length
+
+    def __eq__(self, other):
+        return other \
+               and self.pos == other.pos \
+               and self.visual_pos == other.visual_pos \
+               and self.visual_length == other.visual_length
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return '{} {} {}'.format(self.pos, self.visual_pos, self.visual_length)
+
 class Axis:
     """
     This class manage a set of rows or columns in an axis.
@@ -94,8 +112,7 @@ class Axis:
         element = self.visual_get(visual_pos)
         if element is None:
             return False
-        (pos, size) = element
-        return self.remove_at(pos)
+        return self.remove_at(element.pos)
 
     @property
     def length(self) -> int:
@@ -113,7 +130,7 @@ class Axis:
         """
         return reduce(lambda tot, rng: tot + rng.visual_length, self.ranges, 0)
 
-    def get(self, pos: int) -> Optional[Tuple[int, int]]:
+    def get(self, pos: int) -> Optional[AxisGetResult]:
         """
         Return the tuple (pos, size) at the given position
         :param pos: The element position
@@ -122,13 +139,17 @@ class Axis:
         if pos < 0:
             return None
         i = 0
+        v = 0
         for r in self.ranges:
+            if pos < (i + r.num_elements):
+                return AxisGetResult(pos=pos,
+                                     visual_pos=v + (pos - i) * r.element_visual_length,
+                                     visual_length=r.element_visual_length)
             i += r.num_elements
-            if pos < i:
-                return pos, r.element_visual_length
+            v += r.visual_length
         return None
 
-    def visual_get(self, visual_pos: int) -> Optional[Tuple[int, int]]:
+    def visual_get(self, visual_pos: int) -> Optional[AxisGetResult]:
         """
         Return the tuple (pos, size) at the given visual position
         :param visual_pos: The visual position
@@ -141,9 +162,11 @@ class Axis:
         for r in self.ranges:
             max_visual_pos = min_visual_pos + r.visual_length
             if min_visual_pos <= visual_pos < max_visual_pos:
-                visual_pos -= min_visual_pos
-                index = math.floor(visual_pos / r.element_visual_length)
-                return num_elements + index, r.element_visual_length
+                visual_offset = visual_pos - min_visual_pos
+                pos = math.floor(visual_offset / r.element_visual_length)
+                return AxisGetResult(pos=num_elements + pos,
+                                     visual_pos=min_visual_pos + pos * r.element_visual_length,
+                                     visual_length=r.element_visual_length)
             min_visual_pos = max_visual_pos
             num_elements += r.num_elements
         return None
@@ -182,9 +205,9 @@ class AxisTest(unittest.TestCase):
         self.axis.append(100)
         self.axis.append(100)
         self.axis.append(50)
-        self.assertEqual(self.axis.get(0), (0, 100))
-        self.assertEqual(self.axis.get(1), (1, 100))
-        self.assertEqual(self.axis.get(2), (2, 50))
+        self.assertEqual(self.axis.get(0), AxisGetResult(pos=0, visual_pos=0, visual_length=100))
+        self.assertEqual(self.axis.get(1), AxisGetResult(pos=1, visual_pos=100, visual_length=100))
+        self.assertEqual(self.axis.get(2), AxisGetResult(pos=2, visual_pos=200, visual_length=50))
         self.assertEqual(self.axis.get(3), None)
         self.assertEqual(self.axis.get(-1), None)
 
@@ -192,12 +215,12 @@ class AxisTest(unittest.TestCase):
         self.axis.append(100)
         self.axis.append(100)
         self.axis.append(50)
-        self.assertEqual(self.axis.visual_get(0), (0, 100))
-        self.assertEqual(self.axis.visual_get(50), (0, 100))
-        self.assertEqual(self.axis.visual_get(100), (1, 100))
-        self.assertEqual(self.axis.visual_get(150), (1, 100))
-        self.assertEqual(self.axis.visual_get(200), (2, 50))
-        self.assertEqual(self.axis.visual_get(225), (2, 50))
+        self.assertEqual(self.axis.visual_get(0), AxisGetResult(pos=0, visual_pos=0, visual_length=100))
+        self.assertEqual(self.axis.visual_get(50), AxisGetResult(pos=0, visual_pos=0, visual_length=100))
+        self.assertEqual(self.axis.visual_get(100), AxisGetResult(pos=1, visual_pos=100, visual_length=100))
+        self.assertEqual(self.axis.visual_get(150), AxisGetResult(pos=1, visual_pos=100, visual_length=100))
+        self.assertEqual(self.axis.visual_get(200), AxisGetResult(pos=2, visual_pos=200, visual_length=50))
+        self.assertEqual(self.axis.visual_get(225), AxisGetResult(pos=2, visual_pos=200, visual_length=50))
         self.assertEqual(self.axis.visual_get(250), None)
 
     def test_length(self):
@@ -478,10 +501,10 @@ class Table:
         rect = rect.intersection(self.bounding_rect)
         if rect is None:
             return None
-        column_min, _ = self.xAxis.visual_get(rect.left)
-        column_max, _ = self.xAxis.visual_get(rect.right-1)
-        row_min, _ = self.yAxis.visual_get(rect.top)
-        row_max, _ = self.yAxis.visual_get(rect.bottom-1)
+        column_min = self.xAxis.visual_get(rect.left).pos
+        column_max = self.xAxis.visual_get(rect.right-1).pos
+        row_min = self.yAxis.visual_get(rect.top).pos
+        row_max = self.yAxis.visual_get(rect.bottom-1).pos
         result = []
         for c in range(column_min, column_max + 1):
             for r in range(row_min, row_max + 1):
