@@ -8,7 +8,7 @@ class Range:
     This class represents a range of element with the same size
     """
 
-    def __init__(self, num_elements, element_visual_length):
+    def __init__(self, num_elements: int, element_visual_length: int):
         """
         Initialize the range with the given number of elements and size
         :param num_elements: The number of elements
@@ -18,7 +18,7 @@ class Range:
         self.element_visual_length = element_visual_length
 
     @property
-    def length(self):
+    def length(self) -> int:
         """
         Return the total number of elements stored in this range
         :return: The number of elements in this range
@@ -26,7 +26,7 @@ class Range:
         return self.num_elements
 
     @property
-    def visual_length(self):
+    def visual_length(self) -> int:
         """
         Return the visual length of this range. I.e. the sum of
         all elements visual size
@@ -55,7 +55,7 @@ class Axis:
     def __init__(self):
         self.ranges = []
 
-    def append(self, size):
+    def append(self, size: int) -> None:
         """
         Append an element to the end of the axis
         :param size: the size of the element
@@ -64,7 +64,7 @@ class Axis:
         self.ranges.append(Range(1, size))
         self._fix_ranges()
 
-    def remove_at(self, pos):
+    def remove_at(self, pos: int) -> bool:
         """
         Remove element at the given position
         :param pos: The element pos
@@ -82,7 +82,7 @@ class Axis:
                 return True
         return False
 
-    def visual_remove_at(self, visual_pos):
+    def visual_remove_at(self, visual_pos: int) -> bool:
         """
         Remove the element at the given visual position
         :param visual_pos: The visual pos
@@ -95,7 +95,7 @@ class Axis:
         return self.remove_at(pos)
 
     @property
-    def length(self):
+    def length(self) -> int:
         """
         Return the number of elements contained in this Axis
         :return: Return the number of elements
@@ -103,14 +103,14 @@ class Axis:
         return reduce(lambda tot, rng: tot + rng.num_elements, self.ranges, 0)
 
     @property
-    def visual_length(self):
+    def visual_length(self) -> int:
         """
         Return the total visual length of the axis elements
         :return: The total visual length
         """
         return reduce(lambda tot, rng: tot + rng.visual_length, self.ranges, 0)
 
-    def get(self, pos):
+    def get(self, pos: int) -> (int, int):
         """
         Return the tuple (pos, size) at the given position
         :param pos: The element position
@@ -125,7 +125,7 @@ class Axis:
                 return pos, r.element_visual_length
         return None
 
-    def visual_get(self, visual_pos):
+    def visual_get(self, visual_pos: int) -> (int, int):
         """
         Return the tuple (pos, size) at the given visual position
         :param visual_pos: The visual position
@@ -260,7 +260,7 @@ class AxisTest(unittest.TestCase):
 
 @total_ordering
 class Point:
-    def __init__(self, x, y):
+    def __init__(self, x: int, y: int):
         self.x = x
         self.y = y
 
@@ -283,23 +283,23 @@ class Point:
 
 
 class Rect:
-    def __init__(self, top_left, bottom_right):
+    def __init__(self, top_left: Point, bottom_right: Point):
         self.top_left = top_left
         self.bottom_right = bottom_right
 
     @staticmethod
-    def from_xy(x1, y1, x2, y2):
+    def from_xy(x1: int, y1: int, x2: int, y2: int) -> 'Rect':
         return Rect(Point(x1, y1), Point(x2, y2))
 
     @staticmethod
-    def from_points(top_left, bottom_right):
+    def from_points(top_left: Point, bottom_right: Point) -> 'Rect':
         return Rect(top_left, bottom_right)
 
     @staticmethod
-    def from_point_and_size(top_left, width, height):
+    def from_point_and_size(top_left: Point, width: int, height: int) -> 'Rect':
         return Rect(top_left, Point(top_left.x + width, top_left.y + height))
 
-    def intersection(self, other):
+    def intersection(self, other: 'Rect') -> 'Rect':
         """
         Return the intersection of this rect with other
         """
@@ -318,7 +318,7 @@ class Rect:
         return Rect.from_points(top_left, bottom_right)
 
     @property
-    def width(self):
+    def width(self) -> int:
         """
         Return the rectangle width
         """
@@ -329,7 +329,7 @@ class Rect:
         self.right = self.left + width
 
     @property
-    def height(self):
+    def height(self) -> int:
         """
         Return the rectangle height
         """
@@ -340,7 +340,7 @@ class Rect:
         self.bottom = self.top + height
 
     @property
-    def left(self):
+    def left(self) -> int:
         """
         Return the left edge coordinate
         """
@@ -351,7 +351,7 @@ class Rect:
         self.top_left.x = value
 
     @property
-    def right(self):
+    def right(self) -> int:
         """
         Return the right edge coordinate
         """
@@ -362,7 +362,7 @@ class Rect:
         self.bottom_right.x = value
 
     @property
-    def top(self):
+    def top(self) -> int:
         """
         Return the top edge coordinate
         """
@@ -373,7 +373,7 @@ class Rect:
         self.top_left.y = value
 
     @property
-    def bottom(self):
+    def bottom(self) -> int:
         """
         Return the bottom edge coordinate
         """
@@ -427,7 +427,7 @@ class RectTest(unittest.TestCase):
 
 @total_ordering
 class Cell:
-    def __init__(self, row, column):
+    def __init__(self, row: int, column: int):
         self.row = row
         self.column = column
 
@@ -454,7 +454,7 @@ class Table:
         self.yAxis = Axis()
 
     @property
-    def bounding_rect(self):
+    def bounding_rect(self) -> Rect:
         """
         Return the visual rect for the given table
         :return:
@@ -468,7 +468,7 @@ class Table:
     def bounding_rect(self, value):
         raise Exception('Bounding rect of Table is readonly')
 
-    def cells_in_visual_rect(self, rect):
+    def cells_in_visual_rect(self, rect: Rect) -> Rect:
         """
         Return the cells in the given visual rect
         """
