@@ -15,26 +15,31 @@ class Range:
         :param element_visual_length: The length of each element
         """
         self.num_elements = num_elements
-        self.size = element_visual_length
-
-    @property
-    def element_visual_length(self):
-        return self.size
+        self.element_visual_length = element_visual_length
 
     @property
     def length(self):
+        """
+        Return the total number of elements stored in this range
+        :return: The number of elements in this range
+        """
         return self.num_elements
 
     @property
     def visual_length(self):
-        return self.num_elements * self.size
+        """
+        Return the visual length of this range. I.e. the sum of
+        all elements visual size
+        :return: The total visual length
+        """
+        return self.num_elements * self.element_visual_length
 
     @visual_length.setter
     def visual_length(self, value):
         raise Exception('Range.visual_length is a readonly property')
 
     def __eq__(self, other):
-        return self.num_elements == other.num_elements and self.size == other.size
+        return other and self.num_elements == other.num_elements and self.element_visual_length == other.element_visual_length
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -103,7 +108,7 @@ class Axis:
         Return the total visual length of the axis elements
         :return: The total visual length
         """
-        return reduce(lambda tot, rng: tot + rng.size * rng.num_elements, self.ranges, 0)
+        return reduce(lambda tot, rng: tot + rng.visual_length, self.ranges, 0)
 
     def get(self, pos):
         """
@@ -117,7 +122,7 @@ class Axis:
         for r in self.ranges:
             i += r.num_elements
             if pos < i:
-                return pos, r.size
+                return pos, r.element_visual_length
         return None
 
     def visual_get(self, visual_pos):
@@ -134,8 +139,8 @@ class Axis:
             max_visual_pos = min_visual_pos + r.visual_length
             if min_visual_pos <= visual_pos < max_visual_pos:
                 visual_pos -= min_visual_pos
-                index = math.floor(visual_pos / r.size)
-                return num_elements + index, r.size
+                index = math.floor(visual_pos / r.element_visual_length)
+                return num_elements + index, r.element_visual_length
             min_visual_pos = max_visual_pos
             num_elements += r.num_elements
         return None
@@ -151,7 +156,7 @@ class Axis:
                 pass
             elif len(ranges) == 0:
                 ranges.append(r)
-            elif ranges[-1].size == r.size:
+            elif ranges[-1].element_visual_length == r.element_visual_length:
                 ranges[-1].num_elements += 1
             else:
                 ranges.append(r)
