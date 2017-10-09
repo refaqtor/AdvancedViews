@@ -1,6 +1,6 @@
 import unittest
 import math
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from functools import reduce, total_ordering
 
 
@@ -40,7 +40,9 @@ class Range:
         raise Exception('Range.visual_length is a readonly property')
 
     def __eq__(self, other):
-        return other and self.num_elements == other.num_elements and self.element_visual_length == other.element_visual_length
+        return other \
+               and self.num_elements == other.num_elements \
+               and self.element_visual_length == other.element_visual_length
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -111,7 +113,7 @@ class Axis:
         """
         return reduce(lambda tot, rng: tot + rng.visual_length, self.ranges, 0)
 
-    def get(self, pos: int) -> Tuple[int, int]:
+    def get(self, pos: int) -> Optional[Tuple[int, int]]:
         """
         Return the tuple (pos, size) at the given position
         :param pos: The element position
@@ -126,7 +128,7 @@ class Axis:
                 return pos, r.element_visual_length
         return None
 
-    def visual_get(self, visual_pos: int) -> Tuple[int, int]:
+    def visual_get(self, visual_pos: int) -> Optional[Tuple[int, int]]:
         """
         Return the tuple (pos, size) at the given visual position
         :param visual_pos: The visual position
@@ -300,7 +302,7 @@ class Rect:
     def from_point_and_size(top_left: Point, width: int, height: int) -> 'Rect':
         return Rect(top_left, Point(top_left.x + width, top_left.y + height))
 
-    def intersection(self, other: 'Rect') -> 'Rect':
+    def intersection(self, other: 'Rect') -> Optional['Rect']:
         """
         Return the intersection of this rect with other
         """
@@ -469,7 +471,7 @@ class Table:
     def bounding_rect(self, value):
         raise Exception('Bounding rect of Table is readonly')
 
-    def cells_in_visual_rect(self, rect: Rect) -> List[Cell]:
+    def cells_in_visual_rect(self, rect: Rect) -> Optional[List[Cell]]:
         """
         Return the cells in the given visual rect
         """
