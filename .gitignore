@@ -1,1 +1,3 @@
 .idea
+*.qmlc
+__pycache__
