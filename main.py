@@ -1,6 +1,6 @@
 import unittest
 import math
-from typing import List, Tuple, Optional
+from typing import List, Optional
 from functools import reduce, total_ordering
 
 
@@ -65,6 +65,7 @@ class AxisGetResult:
 
     def __repr__(self):
         return '{} {} {}'.format(self.pos, self.visual_pos, self.visual_length)
+
 
 class Axis:
     """
@@ -453,9 +454,13 @@ class RectTest(unittest.TestCase):
 
 @total_ordering
 class Cell:
-    def __init__(self, row: int, column: int):
+    def __init__(self, row: int, column: int, x: int, y: int, width: int, height: int):
         self.row = row
         self.column = column
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
 
     def __eq__(self, other):
         return self.row == other.row and self.column == other.column
@@ -472,6 +477,9 @@ class Cell:
 
     def __repr__(self):
         return '(' + str(self.row) + ',' + str(self.column) + ')'
+
+    def __hash__(self):
+        return hash((self.row, self.column))
 
 
 class Table:
@@ -494,21 +502,24 @@ class Table:
     def bounding_rect(self, value):
         raise Exception('Bounding rect of Table is readonly')
 
-    def cells_in_visual_rect(self, rect: Rect) -> Optional[List[Cell]]:
+    def cells_in_visual_rect(self, rect: Rect) -> List[Cell]:
         """
         Return the cells in the given visual rect
         """
         rect = rect.intersection(self.bounding_rect)
         if rect is None:
-            return None
+            return list()
         column_min = self.xAxis.visual_get(rect.left).pos
         column_max = self.xAxis.visual_get(rect.right-1).pos
         row_min = self.yAxis.visual_get(rect.top).pos
         row_max = self.yAxis.visual_get(rect.bottom-1).pos
         result = []
-        for c in range(column_min, column_max + 1):
-            for r in range(row_min, row_max + 1):
-                result.append(Cell(r, c))
+        for c in [self.xAxis.get(x) for x in range(column_min, column_max + 1)]:
+            for r in [self.yAxis.get(x) for x in range(row_min, row_max + 1)]:
+                cell = Cell(row=r.pos, column=c.pos,
+                            x=c.visual_pos, y=r.visual_pos,
+                            width=c.visual_length, height=r.visual_length )
+                result.append(cell)
         result.sort()
         return result
 
@@ -531,17 +542,17 @@ class TableTest(unittest.TestCase):
         self.table.yAxis.append(50)
         self.assertEqual(self.table.bounding_rect, Rect.from_xy(0, 0, 200, 150))
         cells = self.table.cells_in_visual_rect(Rect.from_xy(0, 0, 200, 150))
-        self.assertEqual(cells, [Cell(0, 0), Cell(0, 1),
-                                 Cell(1, 0), Cell(1, 1),
-                                 Cell(2, 0), Cell(2, 1)])
+        self.assertEqual(cells, [Cell(0, 0, 0, 0, 100, 50), Cell(0, 1, 0, 100, 100, 50),
+                                 Cell(1, 0, 0, 50, 100, 50), Cell(1, 1, 100, 50, 100, 50),
+                                 Cell(2, 0, 0, 100, 100, 50), Cell(2, 1, 100, 50, 100, 50)])
         cells = self.table.cells_in_visual_rect(Rect.from_xy(-20, -20, 220, 170))
-        self.assertEqual(cells, [Cell(0, 0), Cell(0, 1),
-                                 Cell(1, 0), Cell(1, 1),
-                                 Cell(2, 0), Cell(2, 1)])
+        self.assertEqual(cells, [Cell(0, 0, 0, 0, 100, 50), Cell(0, 1, 0, 100, 100, 50),
+                                 Cell(1, 0, 0, 50, 100, 50), Cell(1, 1, 100, 50, 100, 50),
+                                 Cell(2, 0, 0, 100, 100, 50), Cell(2, 1, 100, 50, 100, 50)])
         cells = self.table.cells_in_visual_rect(Rect.from_xy(10, 10, 190, 140))
-        self.assertEqual(cells, [Cell(0, 0), Cell(0, 1),
-                                 Cell(1, 0), Cell(1, 1),
-                                 Cell(2, 0), Cell(2, 1)])
+        self.assertEqual(cells, [Cell(0, 0, 0, 0, 100, 50), Cell(0, 1, 0, 100, 100, 50),
+                                 Cell(1, 0, 0, 50, 100, 50), Cell(1, 1, 100, 50, 100, 50),
+                                 Cell(2, 0, 0, 100, 100, 50), Cell(2, 1, 100, 50, 100, 50)])
 
 
 if __name__ == '__main__':
