@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import List, Dict
+from typing import List, Dict, Set
 
 from PyQt5.QtCore import QObject, QUrl, QRect, pyqtSignal, pyqtSlot, pyqtProperty, QPoint
 from PyQt5.QtGui import QGuiApplication
@@ -8,6 +8,18 @@ from PyQt5.QtQml import qmlRegisterType, QQmlApplicationEngine, QQmlComponent, Q
 from PyQt5.QtQuick import QQuickItem
 
 import main
+
+
+class TableViewPrivateElement:
+    def __init__(self, cell: main.Cell):
+        self.cell = cell
+        self.item = None
+
+    def __eq__(self, other: 'TableViewPrivateElement') -> bool:
+        return other and self.cell == other.cell
+
+    def __hash__(self):
+        return hash(self.cell)
 
 
 class TableViewPrivate(QQuickItem):
@@ -26,8 +38,7 @@ class TableViewPrivate(QQuickItem):
         for i in range(0, 1000):
             self.table.yAxis.append(100)
         self.visible_area = QRect(0, 0, 0, 0)
-        self.cells = []
-        self.cell_items = {}
+        self.elements: List[TableViewPrivateElement] = []
         self.cell_delegate = QQmlComponent()
 
     def bounding_rect(self) -> QRect:
@@ -77,19 +88,22 @@ class TableViewPrivate(QQuickItem):
         self.cell_delegate_changed.emit()
 
         # Destroy the previous cell items
-        self.cell_items.clear()
+        for element in self.elements:
+            element.item.deleteLater()
+            element.item = None
 
         # Do nothing if the delegate is null
         if self.cell_delegate.isNull():
             return
 
         # Recreate the items for each cell
-        for cell in self.cells:
-            item = self.create_cell_item(cell.x, cell.y, cell.width, cell.height)
-            self.cell_items[(cell.row, cell.column)] = item
+        for element in self.elements:
+            element.item = self.create_cell_item(element.cell.x, element.cell.y,
+                                                 element.cell.width, element.cell.height)
 
     cell_delegate_changed = pyqtSignal()
-    cellDelegate = pyqtProperty(type=QQmlComponent, fget=cell_delegate, fset=set_cell_delegate, notify=cell_delegate_changed)
+    cellDelegate = pyqtProperty(type=QQmlComponent, fget=cell_delegate, fset=set_cell_delegate,
+                                notify=cell_delegate_changed)
 
     def on_visible_area_changed(self):
         """
@@ -98,17 +112,20 @@ class TableViewPrivate(QQuickItem):
         # Determine the visible cells
         rect = main.Rect(main.Point(self.visible_area.left(), self.visible_area.top()),
                          main.Point(self.visible_area.right(), self.visible_area.bottom()))
-        visible_cells = self.table.cells_in_visual_rect(rect)
+        visible_cells = set(self.table.cells_in_visual_rect(rect))
+        current_cells = set([x.cell for x in self.elements])
 
-        for cell in set(self.cells) - set(visible_cells):
-            item: QQuickItem = self.cell_items[(cell.row, cell.column)]
-            item.deleteLater()
-            del self.cell_items[(cell.row, cell.column)]
-            self.cells.remove(cell)
+        # Remove elements that are not visible anymore
+        for element in [e for e in self.elements if e.cell in current_cells - visible_cells]:
+            element.item.deleteLater()
+            element.item = None
+            self.elements.remove(element)
 
-        for cell in set(visible_cells) - set(self.cells):
-            self.cells.append(cell)
-            self.cell_items[(cell.row, cell.column)] = self.create_cell_item(cell.x, cell.y, cell.width, cell.height)
+        # Add elements for the new visible cells
+        for cell in visible_cells - current_cells:
+            element = TableViewPrivateElement(cell)
+            element.item = self.create_cell_item(cell.x, cell.y, cell.width, cell.height)
+            self.elements.append(element)
 
     def create_cell_item(self, x: int, y: int, width: int, height: int) -> QQuickItem:
         """
