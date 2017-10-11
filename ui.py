@@ -98,8 +98,7 @@ class TableViewPrivate(QQuickItem):
 
         # Recreate the items for each cell
         for element in self.elements:
-            element.item = self.create_cell_item(element.cell.x, element.cell.y,
-                                                 element.cell.width, element.cell.height)
+            element.item = self.create_cell_item(element.cell)
 
     cell_delegate_changed = pyqtSignal()
     cellDelegate = pyqtProperty(type=QQmlComponent, fget=cell_delegate, fset=set_cell_delegate,
@@ -124,23 +123,26 @@ class TableViewPrivate(QQuickItem):
         # Add elements for the new visible cells
         for cell in visible_cells - current_cells:
             element = TableViewPrivateElement(cell)
-            element.item = self.create_cell_item(cell.x, cell.y, cell.width, cell.height)
+            element.item = self.create_cell_item(cell)
             self.elements.append(element)
 
-    def create_cell_item(self, x: int, y: int, width: int, height: int) -> QQuickItem:
+    def create_cell_item(self, cell: main.Cell) -> QQuickItem:
         """
         Create a cell delegate with the given parameters
         """
-        context: QQmlContext = QQmlEngine.contextForObject(self)
+        context = QQmlContext(QQmlEngine.contextForObject(self), None)
+        context.setContextProperty("row", cell.row)
+        context.setContextProperty("column", cell.column)
         result: QQuickItem = self.cell_delegate.beginCreate(context)
         QQmlEngine.setObjectOwnership(result, QQmlEngine.CppOwnership)
         result.setParentItem(self)
         result.setParent(self)
-        result.setX(x)
-        result.setY(y)
-        result.setWidth(width)
-        result.setHeight(height)
+        result.setX(cell.x)
+        result.setY(cell.y)
+        result.setWidth(cell.width)
+        result.setHeight(cell.height)
         self.cell_delegate.completeCreate()
+        context.setParent(result)
         return result
 
 

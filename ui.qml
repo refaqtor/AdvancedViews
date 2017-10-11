@@ -14,6 +14,11 @@ C2.ApplicationWindow {
             color: "yellow"
             border.color: "black"
             border.width: 1
+
+            Text {
+                anchors.centerIn: parent
+                text: row + " " + column
+            }
         }
     }
 
