@@ -1,10 +1,11 @@
 import os
 import sys
-from typing import List, Dict, Set, Callable
+from typing import List, Callable
 
-from PyQt5.QtCore import QObject, QUrl, QRect, pyqtSignal, pyqtSlot, pyqtProperty, QPoint
+from PyQt5.QtCore import QObject, QUrl, QRect, pyqtSignal, pyqtSlot, pyqtProperty, QPoint, QTimer
 from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtQml import qmlRegisterType, QQmlApplicationEngine, QQmlComponent, QQmlContext, QQmlEngine, QQmlIncubator
+from PyQt5.QtQml import qmlRegisterType, QQmlApplicationEngine, QQmlComponent, QQmlContext, QQmlEngine, QQmlIncubator, \
+    QQmlIncubationController
 from PyQt5.QtQuick import QQuickItem
 
 import main
@@ -14,7 +15,7 @@ class TableViewIncubator(QQmlIncubator):
     def __init__(self,
                  status_changed_callback: Callable[[QQmlIncubator.Status], None],
                  set_initial_state_callback: Callable[[QObject], None],
-                 mode: QQmlIncubator.IncubationMode=QQmlIncubator.Asynchronous):
+                 mode: QQmlIncubator.IncubationMode = QQmlIncubator.Asynchronous):
         super(TableViewIncubator, self).__init__(mode)
         self.status_changed_callback = status_changed_callback
         self.set_initial_state_callback = set_initial_state_callback
@@ -26,6 +27,7 @@ class TableViewIncubator(QQmlIncubator):
     def setInitialState(self, a0: QObject):
         super(TableViewIncubator, self).setInitialState(a0)
         self.set_initial_state_callback(a0)
+
 
 class TableViewPrivateElement:
     def __init__(self, table: 'TableViewPrivate', cell: main.Cell):
@@ -189,6 +191,20 @@ if __name__ == '__main__':
     qmlRegisterType(TableViewPrivate, 'AdvancedViews', 1, 0, 'TableViewPrivate')
     app = QGuiApplication(sys.argv)
     script_path = os.path.dirname(os.path.abspath(__file__))
+    controller = QQmlIncubationController()
+    timer = QTimer()
+    timer.setInterval(16)
+    timer.setSingleShot(False)
+
+
+    def incubate():
+        controller.incubateFor(5)
+
+
+    timer.timeout.connect(incubate)
+    timer.start()
     engine = QQmlApplicationEngine()
+    engine.setIncubationController(controller)
     engine.load(QUrl.fromLocalFile(os.path.join(script_path, 'ui.qml')))
+
     sys.exit(app.exec())
