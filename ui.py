@@ -1,19 +1,79 @@
 import os
 import sys
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Callable
 
 from PyQt5.QtCore import QObject, QUrl, QRect, pyqtSignal, pyqtSlot, pyqtProperty, QPoint
 from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtQml import qmlRegisterType, QQmlApplicationEngine, QQmlComponent, QQmlContext, QQmlEngine
+from PyQt5.QtQml import qmlRegisterType, QQmlApplicationEngine, QQmlComponent, QQmlContext, QQmlEngine, QQmlIncubator
 from PyQt5.QtQuick import QQuickItem
 
 import main
 
 
+class TableViewIncubator(QQmlIncubator):
+    def __init__(self,
+                 status_changed_callback: Callable[[QQmlIncubator.Status], None],
+                 set_initial_state_callback: Callable[[QObject], None],
+                 mode: QQmlIncubator.IncubationMode=QQmlIncubator.Asynchronous):
+        super(TableViewIncubator, self).__init__(mode)
+        self.status_changed_callback = status_changed_callback
+        self.set_initial_state_callback = set_initial_state_callback
+
+    def statusChanged(self, status: 'QQmlIncubator.Status'):
+        super(TableViewIncubator, self).statusChanged(status)
+        self.status_changed_callback(status)
+
+    def setInitialState(self, a0: QObject):
+        super(TableViewIncubator, self).setInitialState(a0)
+        self.set_initial_state_callback(a0)
+
 class TableViewPrivateElement:
-    def __init__(self, cell: main.Cell):
+    def __init__(self, table: 'TableViewPrivate', cell: main.Cell):
+        self.table = table
         self.cell = cell
-        self.item = None
+        self.context: QQmlContext = None
+        self.incubator: TableViewIncubator = None
+        self.item: QQuickItem = None
+
+    def clear_item(self):
+        if self.item:
+            self.item.deleteLater()
+            self.item = None
+        if self.context:
+            self.context.deleteLater()
+            self.context = None
+        if self.incubator:
+            self.incubator.clear()
+            self.incubator = None
+
+    def create_item(self):
+        assert self.incubator is None
+        assert self.item is None
+        assert self.context is None
+        assert self.cell
+        table_context = QQmlEngine.contextForObject(self.table)
+        # Initialize the context
+        self.context = QQmlContext(table_context, None)
+        self.context.setContextProperty("row", self.cell.row)
+        self.context.setContextProperty("column", self.cell.column)
+        # Initialize the incubator
+        self.incubator = TableViewIncubator(status_changed_callback=self.on_incubator_status_changed,
+                                            set_initial_state_callback=self.on_incubator_set_initial_state)
+        # Begin creation
+        self.table.cell_delegate.create(self.incubator, self.context, table_context)
+
+    def on_incubator_set_initial_state(self, item: QObject):
+        item.setParentItem(self.table)
+        item.setParent(self.table)
+        item.setX(self.cell.x)
+        item.setY(self.cell.y)
+        item.setWidth(self.cell.width)
+        item.setHeight(self.cell.height)
+
+    def on_incubator_status_changed(self, status: QQmlIncubator.Status):
+        if status == QQmlIncubator.Ready:
+            self.item = self.incubator.object()
+            self.context.setParent(self.item)
 
     def __eq__(self, other: 'TableViewPrivateElement') -> bool:
         return other and self.cell == other.cell
@@ -89,8 +149,7 @@ class TableViewPrivate(QQuickItem):
 
         # Destroy the previous cell items
         for element in self.elements:
-            element.item.deleteLater()
-            element.item = None
+            element.clear_item()
 
         # Do nothing if the delegate is null
         if self.cell_delegate.isNull():
@@ -98,7 +157,7 @@ class TableViewPrivate(QQuickItem):
 
         # Recreate the items for each cell
         for element in self.elements:
-            element.item = self.create_cell_item(element.cell)
+            element.create_item()
 
     cell_delegate_changed = pyqtSignal()
     cellDelegate = pyqtProperty(type=QQmlComponent, fget=cell_delegate, fset=set_cell_delegate,
@@ -116,34 +175,14 @@ class TableViewPrivate(QQuickItem):
 
         # Remove elements that are not visible anymore
         for element in [e for e in self.elements if e.cell in current_cells - visible_cells]:
-            element.item.deleteLater()
-            element.item = None
+            element.clear_item()
             self.elements.remove(element)
 
         # Add elements for the new visible cells
         for cell in visible_cells - current_cells:
-            element = TableViewPrivateElement(cell)
-            element.item = self.create_cell_item(cell)
+            element = TableViewPrivateElement(table=self, cell=cell)
+            element.create_item()
             self.elements.append(element)
-
-    def create_cell_item(self, cell: main.Cell) -> QQuickItem:
-        """
-        Create a cell delegate with the given parameters
-        """
-        context = QQmlContext(QQmlEngine.contextForObject(self), None)
-        context.setContextProperty("row", cell.row)
-        context.setContextProperty("column", cell.column)
-        result: QQuickItem = self.cell_delegate.beginCreate(context)
-        QQmlEngine.setObjectOwnership(result, QQmlEngine.CppOwnership)
-        result.setParentItem(self)
-        result.setParent(self)
-        result.setX(cell.x)
-        result.setY(cell.y)
-        result.setWidth(cell.width)
-        result.setHeight(cell.height)
-        self.cell_delegate.completeCreate()
-        context.setParent(result)
-        return result
 
 
 if __name__ == '__main__':
