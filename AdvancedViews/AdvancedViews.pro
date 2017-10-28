@@ -9,17 +9,17 @@ uri = AdvancedViews
 # Input
 SOURCES += \
     advancedviews_plugin.cpp \
-    tableview.cpp \
     range.cpp \
-    axis.cpp
+    axis.cpp \
+    tableviewprivate.cpp
 
 HEADERS += \
     advancedviews_plugin.h \
-    tableview.h \
     range.h \
     axis.h \
     cell.h \
-    table.h
+    table.h \
+    tableviewprivate.h
 
 DISTFILES = qmldir
 
@@ -38,3 +38,6 @@ unix {
     target.path = $$installPath
     INSTALLS += target qmldir
 }
+
+RESOURCES += \
+    resources.qrc

@@ -1,7 +1,9 @@
-#include "tableview.h"
+#include "tableviewprivate.h"
 
 #include <QQmlEngine>
+#include <iostream>
 #include <set>
+#include <unordered_set>
 
 namespace
 {
@@ -10,8 +12,12 @@ bool cellComparator(const Cell &c1, const Cell &c2)
 {
     if (c1.row() < c2.row())
         return true;
+    if (c1.row() > c2.row())
+        return false;
     if (c1.column() < c2.column())
         return true;
+    if (c1.column() > c2.column())
+        return false;
     return false;
 }
 
@@ -20,7 +26,9 @@ bool cellComparator(const Cell &c1, const Cell &c2)
 TableViewPrivateElement::TableViewPrivateElement(TableViewPrivate &table, Cell cell)
     : m_table(table)
     , m_cell(std::move(cell))
-{}
+{
+    createItem();
+}
 
 TableViewPrivateElement::~TableViewPrivateElement()
 {
@@ -52,8 +60,9 @@ void TableViewPrivateElement::clearItem()
 
 void TableViewPrivateElement::onIncubatorStatusChanged(QQmlIncubator::Status status)
 {
-    if (status == QQmlIncubator::Ready)
+    if (status == QQmlIncubator::Ready) {
         m_item.reset(qobject_cast<QQuickItem*>(m_incubator->object()));
+    }
 }
 
 void TableViewPrivateElement::onIncubatorSetInitialState(QObject *object)
@@ -73,7 +82,7 @@ TableViewPrivate::TableViewPrivate(QQuickItem *parent)
         m_table.xAxis().append(100);
         m_table.yAxis().append(100);
     }
-    setBoundingRect(m_table.boundingRect());
+    updateGeometry();
 }
 
 TableViewPrivate::~TableViewPrivate() = default;
@@ -110,33 +119,26 @@ void TableViewPrivate::setVisibleArea(QRect visibleArea)
 
 void TableViewPrivate::onVisibleAreaChanged()
 {
-    using Set = std::set<Cell>;
+    using CellSet = std::set<Cell, bool(*)(const Cell&, const Cell&)>;
 
-    std::vector<Cell> cells = m_table.cellsInVisualRect(m_visibleArea);
+    CellSet visibleCells(&cellComparator);
+    const std::vector<Cell> visibleCellsVector = m_table.cellsInVisualRect(m_visibleArea);
+    visibleCells.insert(visibleCellsVector.begin(), visibleCellsVector.end());
 
-    Set visibleCells(&cellComparator);
-    visibleCells.insert(cells.begin(), cells.end());
+    CellSet currentCells(&cellComparator);
+    for (const auto& e : m_elements)
+        currentCells.insert(e->cell());
 
-    Set currentCells(&cellComparator);
-    for (const auto &element : m_elements)
-        currentCells.insert(element->cell());
+    // Remove elements that are not visibile anymore
+    auto isVisible = [&visibleCells] (const auto& e){ return visibleCells.find(e->cell()) == visibleCells.end(); };
+    m_elements.erase(std::remove_if(m_elements.begin(), m_elements.end(), isVisible), m_elements.end());
 
-    Set toRemove;
-    std::set_difference(currentCells.begin(), currentCells.end(),
-                        visibleCells.begin(), visibleCells.end(),
-                        std::inserter(toRemove, toRemove.begin()));
-    for (auto it = m_elements.begin(), end = m_elements.end(); it != end; ++it)
-        if (toRemove.find((*it)->cell()) != toRemove.end())
-            it = m_elements.erase(it);
-
-    Set toAdd;
-    std::set_difference(visibleCells.begin(), visibleCells.end(),
-                        currentCells.begin(), currentCells.end(),
-                        std::inserter(toAdd, toAdd.begin()));
-    for (const Cell &cell : toAdd) {
-        auto element = std::make_unique<TableViewPrivateElement>(*this, cell);
-        element->createItem();
-        m_elements.push_back(std::move(element));
+    // Add new elements that become visible
+    for (const Cell& v : visibleCells) {
+        if (currentCells.find(v) == currentCells.end()) {
+            auto e = std::make_unique<TableViewPrivateElement>(*this, v);
+            m_elements.push_back(std::move(e));
+        }
     }
 }
 
@@ -148,6 +150,12 @@ void TableViewPrivate::onCellDelegateChanged()
         return;
     for (const auto &element : m_elements)
         element->createItem();
+}
+
+void TableViewPrivate::updateGeometry()
+{
+    auto rect = m_table.boundingRect();
+    setSize(rect.size());
 }
 
 TableViewIncubator::TableViewIncubator(TableViewPrivateElement &element)

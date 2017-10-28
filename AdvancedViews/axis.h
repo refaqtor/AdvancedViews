@@ -132,7 +132,7 @@ private:
                 continue;
             if (ranges.empty())
                 ranges.push_back(range);
-            else if (ranges.rbegin()->visualLength() == range.visualLength())
+            else if (ranges.rbegin()->elementVisualLength() == range.elementVisualLength())
                 ranges.rbegin()->resize(ranges.rbegin()->length() + 1);
             else
                 ranges.push_back(range);

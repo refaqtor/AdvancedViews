@@ -34,6 +34,7 @@ public:
     ~TableViewPrivateElement();
 
     Cell cell() const { return m_cell; }
+
     void createItem();
     void clearItem();
 
@@ -72,9 +73,10 @@ signals:
     void visibleAreaChanged(QRect visibleArea);
 
 private:
-    void setBoundingRect(QRect boundingRect);
     void onVisibleAreaChanged();
     void onCellDelegateChanged();
+
+    void updateGeometry();
 
     Table m_table;
     QRect m_visibleArea;
