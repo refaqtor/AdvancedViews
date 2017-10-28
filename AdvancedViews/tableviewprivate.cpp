@@ -27,12 +27,24 @@ TableViewPrivateElement::TableViewPrivateElement(TableViewPrivate &table, Cell c
     : m_table(table)
     , m_cell(std::move(cell))
 {
-    createItem();
 }
 
 TableViewPrivateElement::~TableViewPrivateElement()
 {
     clearItem();
+}
+
+void TableViewPrivateElement::setCell(Cell c)
+{
+    m_cell = std::move(c);
+    if (m_context) {
+        m_context->setContextProperty("row", c.row());
+        m_context->setContextProperty("column", c.column());
+    }
+    if (m_item) {
+        m_item->setPosition(QPoint(m_cell.x(), m_cell.y()));
+        m_item->setSize(QSize(m_cell.width(), m_cell.height()));
+    }
 }
 
 void TableViewPrivateElement::createItem()
@@ -117,6 +129,20 @@ void TableViewPrivate::setVisibleArea(QRect visibleArea)
     onVisibleAreaChanged();
 }
 
+std::unique_ptr<TableViewPrivateElement> TableViewPrivate::getOrCreateElement(Cell cell)
+{
+    std::unique_ptr<TableViewPrivateElement> result;
+    if (m_cache.empty()) {
+        result = std::make_unique<TableViewPrivateElement>(*this, std::move(cell));
+        result->createItem();
+    } else {
+        result = std::move(m_cache.back());
+        m_cache.pop_back();
+        result->setCell(std::move(cell));
+    }
+    return result;
+}
+
 void TableViewPrivate::onVisibleAreaChanged()
 {
     using CellSet = std::set<Cell, bool(*)(const Cell&, const Cell&)>;
@@ -130,16 +156,15 @@ void TableViewPrivate::onVisibleAreaChanged()
         currentCells.insert(e->cell());
 
     // Remove elements that are not visibile anymore
-    auto isVisible = [&visibleCells] (const auto& e){ return visibleCells.find(e->cell()) == visibleCells.end(); };
-    m_elements.erase(std::remove_if(m_elements.begin(), m_elements.end(), isVisible), m_elements.end());
+    auto isVisible = [&visibleCells] (const auto& e){ return visibleCells.find(e->cell()) != visibleCells.end(); };
+    const auto it = std::partition(m_elements.begin(), m_elements.end(), isVisible);
+    std::move(it, m_elements.end(), std::back_inserter(m_cache));
+    m_elements.erase(it, m_elements.end());
 
     // Add new elements that become visible
-    for (const Cell& v : visibleCells) {
-        if (currentCells.find(v) == currentCells.end()) {
-            auto e = std::make_unique<TableViewPrivateElement>(*this, v);
-            m_elements.push_back(std::move(e));
-        }
-    }
+    for (const Cell& v : visibleCells)
+        if (currentCells.find(v) == currentCells.end())
+            m_elements.push_back(getOrCreateElement(v));
 }
 
 void TableViewPrivate::onCellDelegateChanged()

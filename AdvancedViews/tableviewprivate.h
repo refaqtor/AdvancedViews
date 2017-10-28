@@ -4,6 +4,7 @@
 #include "table.h"
 
 #include <memory>
+#include <stack>
 
 #include <QQmlComponent>
 #include <QQmlIncubator>
@@ -34,6 +35,7 @@ public:
     ~TableViewPrivateElement();
 
     Cell cell() const { return m_cell; }
+    void setCell(Cell c);
 
     void createItem();
     void clearItem();
@@ -73,6 +75,8 @@ signals:
     void visibleAreaChanged(QRect visibleArea);
 
 private:
+    std::unique_ptr<TableViewPrivateElement> getOrCreateElement(Cell c);
+
     void onVisibleAreaChanged();
     void onCellDelegateChanged();
 
@@ -81,6 +85,7 @@ private:
     Table m_table;
     QRect m_visibleArea;
     QPointer<QQmlComponent> m_cellDelegate;
+    std::vector<std::unique_ptr<TableViewPrivateElement>> m_cache;
     std::vector<std::unique_ptr<TableViewPrivateElement>> m_elements;
 };
 
