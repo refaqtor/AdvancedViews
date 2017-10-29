@@ -40,6 +40,12 @@ public:
         , m_rect(other.m_rect)
     {}
 
+    Cell(Cell&& other) noexcept
+        : m_row(std::move(other.m_row))
+        , m_column(std::move(other.m_column))
+        , m_rect(std::move(m_rect))
+    {}
+
     constexpr int row() const { return m_row; }
     constexpr int column() const { return m_column; }
     constexpr QRect rect() const { return m_rect; }
@@ -54,6 +60,13 @@ public:
         m_row = other.m_row;
         m_column = other.m_column;
         m_rect = other.m_rect;
+        return *this;
+    }
+
+    Cell& operator=(Cell &&other) noexcept {
+        m_row = std::move(other.m_row);
+        m_column = std::move(other.m_column);
+        m_rect = std::move(other.m_rect);
         return *this;
     }
 
