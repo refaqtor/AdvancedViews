@@ -64,6 +64,20 @@ void TableViewPrivateElement::setCell(Cell c)
     }
 }
 
+bool TableViewPrivateElement::visible() const
+{
+    return m_visible;
+}
+
+void TableViewPrivateElement::setVisible(bool visible)
+{
+    if (m_visible == visible)
+        return;
+    m_visible = visible;
+    if (m_item)
+        m_item->setVisible(m_visible);
+}
+
 void TableViewPrivateElement::createItem()
 {
     Q_ASSERT(!m_incubator);
@@ -89,19 +103,19 @@ void TableViewPrivateElement::clearItem()
 
 void TableViewPrivateElement::onIncubatorStatusChanged(QQmlIncubator::Status status)
 {
-    if (status == QQmlIncubator::Ready) {
-        m_item.reset(qobject_cast<QQuickItem*>(m_incubator->object()));
-    }
+    /* do nothing */
 }
 
 void TableViewPrivateElement::onIncubatorSetInitialState(QObject *object)
 {
-    auto item = qobject_cast<QQuickItem*>(object);
-    item->setParentItem(&m_table);
-    item->setX(m_cell.x());
-    item->setY(m_cell.y());
-    item->setWidth(m_cell.width());
-    item->setHeight(m_cell.height());
+    m_item.reset(qobject_cast<QQuickItem*>(object));
+    m_item->setParentItem(&m_table);
+    m_item->setX(m_cell.x());
+    m_item->setY(m_cell.y());
+    m_item->setWidth(m_cell.width());
+    m_item->setHeight(m_cell.height());
+    m_item->setZ(0);
+    m_item->setVisible(m_visible);
 }
 
 TableViewPrivate::TableViewPrivate(QQuickItem *parent)
@@ -156,6 +170,7 @@ std::unique_ptr<TableViewPrivateElement> TableViewPrivate::getOrCreateElement(Ce
         result = std::move(m_cache.back());
         m_cache.pop_back();
         result->setCell(std::move(cell));
+        result->setVisible(true);
     }
     return result;
 }
@@ -175,6 +190,7 @@ void TableViewPrivate::onVisibleAreaChanged()
     // Remove elements that are not visibile anymore
     auto isVisible = [&visibleCells] (const auto& e){ return visibleCells.find(e->cell()) != visibleCells.end(); };
     const auto it = std::partition(m_elements.begin(), m_elements.end(), isVisible);
+    std::for_each(it, m_elements.end(), [](const auto& element) { element->setVisible(false); });
     std::move(it, m_elements.end(), std::back_inserter(m_cache));
     m_elements.erase(it, m_elements.end());
 

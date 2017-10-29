@@ -54,6 +54,9 @@ public:
     Cell cell() const { return m_cell; }
     void setCell(Cell c);
 
+    bool visible() const;
+    void setVisible(bool visible);
+
     void createItem();
     void clearItem();
 
@@ -66,6 +69,7 @@ private:
     std::unique_ptr<QQmlContext> m_context;
     std::unique_ptr<QQmlIncubator> m_incubator;
     std::unique_ptr<QQuickItem> m_item;
+    bool m_visible = true;
 };
 
 class TableViewPrivate : public QQuickItem
