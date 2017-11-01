@@ -1,4 +1,6 @@
-# Advanced Views for QtQuick
+# Advanced Views for QtQuick 
+[![Build Status](https://travis-ci.org/filcuc/AdvancedViews.svg?branch=master)](https://travis-ci.org/filcuc/AdvancedViews)
+[![Coverage Status](https://coveralls.io/repos/github/filcuc/AdvancedViews/badge.svg?branch=HEAD)](https://coveralls.io/github/filcuc/AdvancedViews?branch=HEAD)
 
 This project aim to deliver a new set of View for helping
 the creation of advanced control (ie. TableViews) for desktop
