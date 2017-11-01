@@ -1,4 +1,3 @@
+build
+*.user
 .idea
-*.qmlc
-__pycache__
-*.pro.user

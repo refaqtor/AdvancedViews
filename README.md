@@ -14,7 +14,7 @@ This software is licensed under the LGPLv3 license
 For building the project proceed in the usual Unix way
 ```
 mkdir build && cd build
-qmake ..
+cmake ..
 make -j8
 ```
 If everything goes well you should have a QtQuick plugin in 
