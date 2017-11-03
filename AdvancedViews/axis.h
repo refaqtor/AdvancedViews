@@ -26,6 +26,8 @@
 
 #include <optional>
 
+#include "stdutils.h"
+
 struct AxisGetResult
 {
     constexpr AxisGetResult(int pos = -1, int visualPos = -1, int visualLength = -1)
@@ -83,18 +85,12 @@ public:
 
     int length() const
     {
-        int result = 0;
-        for (const Range& r : m_ranges)
-            result += r.length();
-        return result;
+        return stdutils::reduce(m_ranges, &Range::length, 0);
     }
 
     int visualLength() const
     {
-        int result = 0;
-        for (const Range& r : m_ranges)
-            result += r.visualLength();
-        return result;
+        return stdutils::reduce(m_ranges, &Range::visualLength, 0);
     }
 
     std::optional<AxisGetResult> get(int pos) const
@@ -150,7 +146,7 @@ private:
             if (ranges.empty())
                 ranges.push_back(range);
             else if (ranges.rbegin()->elementVisualLength() == range.elementVisualLength())
-                ranges.rbegin()->resize(ranges.rbegin()->length() + 1);
+                ranges.rbegin()->resize(ranges.rbegin()->length() + range.length());
             else
                 ranges.push_back(range);
         }
