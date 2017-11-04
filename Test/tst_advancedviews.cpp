@@ -40,6 +40,7 @@ private slots:
     void testAxisVisualLength();
     void testAxisRemoveAt();
     void testAxisVisualRemoveAt();
+    void testAxisMixed();
 
     void testTableBoundingRect();
     void testTableCellsInRect();
@@ -192,6 +193,22 @@ void AdvancedViewsTest::testAxisVisualRemoveAt()
 
     QVERIFY(axis.visualRemoveAt(0));
     test = {};
+    QVERIFY(std::equal(axis.m_ranges.begin(), axis.m_ranges.end(), test.begin()));
+}
+
+void AdvancedViewsTest::testAxisMixed()
+{
+    Axis axis;
+    axis.append(100);
+    axis.append(50);
+    axis.append(100);
+    axis.append(50);
+    axis.append(100);
+
+    std::vector<Range> test;
+
+    axis.removeAt(2);
+    test = {Range(1, 100), Range(2, 50), Range(1, 100)};
     QVERIFY(std::equal(axis.m_ranges.begin(), axis.m_ranges.end(), test.begin()));
 }
 
