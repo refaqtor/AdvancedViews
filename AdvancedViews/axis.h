@@ -138,6 +138,11 @@ public:
 private:
     void fixRanges()
     {
+        /*
+        The current implementation is for efficient since fix the ranges
+        in place. On the otherhand is far more complex. This code
+        snippet shows the same code in a simple but less efficient way.
+
         std::vector<Range> ranges;
         ranges.reserve(m_ranges.size());
         for (const Range &range : m_ranges) {
@@ -151,6 +156,48 @@ private:
                 ranges.push_back(range);
         }
         std::swap(m_ranges, ranges);
+        */
+
+        auto first = m_ranges.begin();
+        auto last = m_ranges.end();
+        auto previous = m_ranges.end();
+        auto pivot = m_ranges.end();
+
+        // Find a pivot iterator for determing the first element
+        // from which the following should be removed
+        for (; first != last; ) {
+            if (first->empty()) {
+                pivot = first;
+                first = std::next(first);
+                break;
+            }
+            if (previous != m_ranges.end() && previous->elementVisualLength() == first->elementVisualLength()) {
+                previous->resize(previous->length() + first->length());
+                first->resize(0);
+            } else {
+                previous = first;
+                first = std::next(first);
+            }
+        }
+
+        for (; first != last; first = std::next(first)) {
+            if (first->empty()) {
+                // Do nothing
+            } else if (previous->elementVisualLength() == first->elementVisualLength()) {
+                previous->resize(previous->length() + first->length());
+                first->resize(0);
+            } else {
+                std::iter_swap(pivot, first);
+                previous = std::next(previous);
+                pivot = std::next(pivot);
+            }
+        }
+
+        // Remove all the element from pivot to end
+        if (pivot != m_ranges.end())
+            m_ranges.erase(pivot, last);
+
+        return;
     }
 
     std::vector<Range> m_ranges;
