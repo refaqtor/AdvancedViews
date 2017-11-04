@@ -1,0 +1,9 @@
+project = AdvancedViews
+description = Advanced views for QtQuick
+
+sourcedirs = ../AdvancedViews
+
+sources.fileextensions = "*.cpp *.qdoc"
+headers.fileextensions = "*.h"
+
+outputformats = HTML

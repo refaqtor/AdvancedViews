@@ -1,0 +1,32 @@
+/*!
+\qmlmodule AdvancedViews 1.0
+\title Advanced views for QtQuick 
+\ingroup qmlmodules
+\brief Provides QML types for instantiating advanced views.
+
+Provides QML types for instantiating advanced views.
+
+\code
+import AdvancedViews 1.0
+\endcode
+*/
+
+/*!
+\group controls
+\brief Buttons and UI Controls.
+\title Buttons and Controls
+*/
+
+/*!
+\qmltype TableView
+\inqmlmodule AdvancedViews
+\inherits Flickable
+\ingroup controls
+\brief Provides a TableView
+\since AdvancedViews 1.0
+*/
+
+/*!
+\qmlproperty Component TableView::cellDelegate
+An aliased property of type int
+*/
