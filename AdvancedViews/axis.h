@@ -58,6 +58,18 @@ public:
         fixRanges();
     }
 
+    bool move(int from, int to) {
+        const int length = this->length();
+        if (from < 0 || to < 0 || from >= length || to > length)
+            return false;
+        if (from == to) // Nothing to do
+            return true;
+        const int visualLength = get(from)->visualLength;
+        removeAt(from);
+        insertAt(from > to ? to : (to - 1), visualLength);
+        return true;
+    }
+
     bool insertAt(int pos, int visualLength)
     {
         if (pos < 0 || pos > length())
