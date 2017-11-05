@@ -41,6 +41,7 @@ private slots:
     void testAxisRemoveAt();
     void testAxisVisualRemoveAt();
     void testAxisMixed();
+    void testAxisInsertAt();
 
     void testTableBoundingRect();
     void testTableCellsInRect();
@@ -210,6 +211,44 @@ void AdvancedViewsTest::testAxisMixed()
     axis.removeAt(2);
     test = {Range(1, 100), Range(2, 50), Range(1, 100)};
     QVERIFY(std::equal(axis.m_ranges.begin(), axis.m_ranges.end(), test.begin()));
+}
+
+void AdvancedViewsTest::testAxisInsertAt()
+{
+    Axis axis;
+
+    std::vector<Range> test = {};
+    QVERIFY(axis.m_ranges == test);
+
+    axis.insertAt(-1, 100);
+    test = {};
+    QVERIFY(axis.m_ranges == test);
+
+    axis.insertAt(1, 100);
+    test = {};
+    QVERIFY(axis.m_ranges == test);
+
+    axis.insertAt(0, 100);
+    test = {Range(1, 100)};
+    QVERIFY(axis.m_ranges == test);
+
+    axis.insertAt(0, 50);
+    test = {Range(1, 50), Range(1, 100)};
+    QVERIFY(axis.m_ranges == test);
+
+    axis.insertAt(1, 75);
+    test = {Range(1, 50), Range(1, 75), Range(1, 100)};
+    QVERIFY(axis.m_ranges == test);
+
+    axis.insertAt(1, 75);
+    axis.insertAt(1, 75);
+    test = {Range(1, 50), Range(3, 75), Range(1, 100)};
+    QVERIFY(axis.m_ranges == test);
+
+    axis.insertAt(2, 50);
+    test = {Range(1, 50), Range(1, 75), Range(1, 50), Range(2, 75), Range(1, 100)};
+
+    QVERIFY(axis.m_ranges == test);
 }
 
 void AdvancedViewsTest::testTableBoundingRect()
