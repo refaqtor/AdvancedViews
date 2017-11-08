@@ -254,33 +254,56 @@ void AdvancedViewsTest::testAxisInsertAt()
 
 void AdvancedViewsTest::testAxisMove()
 {
-    Axis axis;
-    axis.append(100);
-    axis.append(100);
-    axis.append(50);
-    axis.append(50);
+    {
+        Axis axis;
+        axis.append(100);
+        axis.append(50);
 
-    std::vector<Range> test = { Range(2, 100), Range(2, 50) };
-    QVERIFY(axis.m_ranges == test);
+        std::vector<Range> test = { Range(1, 100), Range(1, 50) };
+        QVERIFY(axis.m_ranges == test);
 
-    QVERIFY(!axis.move(0, -1));
-    QVERIFY(!axis.move(0, 5));
-    QVERIFY(!axis.move(4, -1));
-    QVERIFY(!axis.move(4, 0));
-    QVERIFY(!axis.move(4, 4));
-    QVERIFY(!axis.move(4, 5));
+        axis.move(0, 0, 1);
+        test = { Range(1, 100), Range(1, 50) };
+        QVERIFY(axis.m_ranges == test);
 
-    axis.move(0, 3);
-    test = { Range(1, 100), Range(1, 50), Range(1, 100), Range(1, 50)};
-    QVERIFY(axis.m_ranges == test);
+        axis.move(0, 0, 2);
+        test = { Range(1, 50), Range(1, 100) };
+        QVERIFY(axis.m_ranges == test);
 
-    axis.move(2, 4);
-    test = { Range(1, 100), Range(2, 50), Range(1, 100) };
-    QVERIFY(axis.m_ranges == test);
+        axis.move(1, 1, 0);
+        test = { Range(1, 100), Range(1, 50) };
+        QVERIFY(axis.m_ranges == test);
+    }
 
-    axis.move(3, 0);
-    test = { Range(2, 100), Range(2, 50) };
-    QVERIFY(axis.m_ranges == test);
+    {
+        Axis axis;
+        axis.append(100);
+        axis.append(50);
+        axis.append(100);
+
+        std::vector<Range> test = { Range(1, 100), Range(1, 50) , Range(1, 100) };
+        QVERIFY(axis.m_ranges == test);
+
+        axis.move(0, 1, 1);
+        test = { Range(1, 100), Range(1, 50), Range(1, 100)};
+        QVERIFY(axis.m_ranges == test);
+
+        axis.move(0, 0, 2);
+        test = { Range(1, 50), Range(2, 100) };
+        QVERIFY(axis.m_ranges == test);
+
+        axis.move(0, 0, 2);
+        test = { Range(1, 100), Range(1, 50), Range(1, 100) };
+        QVERIFY(axis.m_ranges == test);
+
+        axis.move(0, 1, 3);
+        test = { Range(2, 100), Range(1, 50) };
+        QVERIFY(axis.m_ranges == test);
+
+        axis.move(1, 2, 0);
+        test = { Range(1, 100), Range(1, 50), Range(1, 100) };
+        QVERIFY(axis.m_ranges == test);
+    }
 }
 
 void AdvancedViewsTest::testTableBoundingRect()

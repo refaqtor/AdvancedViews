@@ -28,4 +28,9 @@ void remove_if(auto& container, const auto& callable) {
     container.erase(first, std::end(container));
 }
 
+void for_each(const auto& container, const auto& callable) {
+    for (const auto& element : container)
+        std::invoke(callable, element);
+}
+
 }

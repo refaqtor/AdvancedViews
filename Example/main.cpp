@@ -17,17 +17,23 @@
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 
 #include <iostream>
+
+#include "testmodel.h"
 
 int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QGuiApplication app(argc, argv);
 
+    TestModel testModel;
+
     QQmlApplicationEngine engine;
     if (argc > 1)
         engine.addImportPath(argv[1]);
+    engine.rootContext()->setContextProperty("testModel", &testModel);
     engine.load(QUrl(QLatin1String("qrc:/main.qml")));
     if (engine.rootObjects().isEmpty())
         return -1;

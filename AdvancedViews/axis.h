@@ -58,15 +58,16 @@ public:
         fixRanges();
     }
 
-    bool move(int from, int to) {
-        const int length = this->length();
-        if (from < 0 || to < 0 || from >= length || to > length)
+    bool move(int fromStart, int fromEnd, int to) {
+        if (to >= fromStart && to <= (fromEnd + 1))
             return false;
-        if (from == to) // Nothing to do
-            return true;
-        const int visualLength = get(from)->visualLength;
-        removeAt(from);
-        insertAt(from > to ? to : (to - 1), visualLength);
+        int length = (fromEnd + 1) - fromStart;
+        while (length > 0) {
+            const int visualLength = get(fromStart)->visualLength;
+            removeAt(fromStart);
+            insertAt(fromStart > to ? to : (to -1), visualLength);
+            --length;
+        }
         return true;
     }
 
@@ -228,12 +229,12 @@ private:
         for (; first != last; first = std::next(first)) {
             if (first->empty()) {
                 // Do nothing
-            } else if (previous->elementVisualLength() == first->elementVisualLength()) {
+            } else if (previous != pivot && previous != m_ranges.end() && previous->elementVisualLength() == first->elementVisualLength()) {
                 previous->resize(previous->length() + first->length());
                 first->resize(0);
             } else {
                 std::iter_swap(pivot, first);
-                previous = std::next(previous);
+                previous = previous == m_ranges.end() ? first : std::next(previous);
                 pivot = std::next(pivot);
             }
         }

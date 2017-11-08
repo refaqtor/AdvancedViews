@@ -22,6 +22,7 @@ Flickable {
     id: root
 
     property alias cellDelegate: view.cellDelegate
+    property alias model: view.model
 
     contentWidth: view.width
     contentHeight: view.height

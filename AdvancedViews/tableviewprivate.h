@@ -22,7 +22,9 @@
 
 #include <memory>
 #include <stack>
+#include <queue>
 
+#include <QAbstractItemModel>
 #include <QQmlComponent>
 #include <QQmlIncubator>
 #include <QQmlContext>
@@ -72,12 +74,31 @@ private:
     bool m_visible = true;
 };
 
+class TableViewTaskQueue
+{
+public:
+    using Task = std::function<void()>;
+
+    TableViewTaskQueue() = default;
+    TableViewTaskQueue(const TableViewTaskQueue&) = delete;
+    TableViewTaskQueue& operator=(const TableViewTaskQueue&) = delete;
+    TableViewTaskQueue(TableViewTaskQueue&&) = delete;
+    TableViewTaskQueue& operator=(TableViewTaskQueue&&) = delete;
+
+    void push(Task task);
+
+private:
+    bool m_executing = false;
+    std::queue<Task> m_tasks;
+};
+
 class TableViewPrivate : public QQuickItem
 {
     Q_OBJECT
     Q_DISABLE_COPY(TableViewPrivate)
 
     Q_PROPERTY(QQmlComponent* cellDelegate READ cellDelegate WRITE setCellDelegate NOTIFY cellDelegateChanged)
+    Q_PROPERTY(QAbstractItemModel* model READ model WRITE setModel NOTIFY modelChanged)
     Q_PROPERTY(QRect visibleArea READ visibleArea WRITE setVisibleArea NOTIFY visibleAreaChanged)
 
 public:
@@ -85,14 +106,17 @@ public:
     ~TableViewPrivate();
 
     QQmlComponent* cellDelegate() const;
+    QAbstractItemModel* model() const;
     QRect visibleArea() const;
 
 public slots:
     void setCellDelegate(QQmlComponent *cellDelegate);
+    void setModel(QAbstractItemModel* model);
     void setVisibleArea(QRect visibleArea);
 
 signals:
     void cellDelegateChanged(QQmlComponent *cellDelegate);
+    void modelChanged(QAbstractItemModel* model);
     void visibleAreaChanged(QRect visibleArea);
 
 private:
@@ -101,12 +125,31 @@ private:
     void onVisibleAreaChanged();
     void onCellDelegateChanged();
 
+    void onModelRowsAboutToBeInserted(const QModelIndex &parent, int first, int last);
+    void onModelRowsInserted(const QModelIndex &parent, int first, int last);
+    void onModelRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+    void onModelRowsRemoved(const QModelIndex &parent, int first, int last);
+    void onModelRowsAboutToBeMoved( const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationRow);
+    void onModelRowsMoved( const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationRow);
+    void onModelColumnsAboutToBeInserted(const QModelIndex &parent, int first, int last);
+    void onModelColumnsInserted(const QModelIndex &parent, int first, int last);
+    void onModelColumnsAboutToBeRemoved(const QModelIndex &parent, int first, int last);
+    void onModelColumnsRemoved(const QModelIndex &parent, int first, int last);
+    void onModelColumnsAboutToBeMoved( const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationColumn);
+    void onModelColumnsMoved( const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationColumn);
+    void onModelAboutToBeReset();
+    void onModelReset();
+    void onModelLayoutAboutToBeChanged(const QList<QPersistentModelIndex> &parents, QAbstractItemModel::LayoutChangeHint hint);
+    void onModelLayoutChanged(const QList<QPersistentModelIndex> &parents, QAbstractItemModel::LayoutChangeHint hint);
+
     void updateGeometry();
 
     Table m_table;
     QRect m_visibleArea;
     QPointer<QQmlComponent> m_cellDelegate;
+    QPointer<QAbstractItemModel> m_model;
     std::vector<std::unique_ptr<TableViewPrivateElement>> m_cache;
     std::vector<std::unique_ptr<TableViewPrivateElement>> m_elements;
+    std::unique_ptr<TableViewTaskQueue> m_tasks;
 };
 

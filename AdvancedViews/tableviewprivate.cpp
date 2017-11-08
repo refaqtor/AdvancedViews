@@ -40,6 +40,20 @@ bool cellComparator(const Cell &c1, const Cell &c2)
 
 }
 
+TableViewIncubator::TableViewIncubator(TableViewPrivateElement &element)
+    : m_element(element)
+{}
+
+void TableViewIncubator::statusChanged(QQmlIncubator::Status status)
+{
+    m_element.onIncubatorStatusChanged(status);
+}
+
+void TableViewIncubator::setInitialState(QObject *object)
+{
+    m_element.onIncubatorSetInitialState(object);
+}
+
 TableViewPrivateElement::TableViewPrivateElement(TableViewPrivate &table, Cell cell)
     : m_table(table)
     , m_cell(std::move(cell))
@@ -120,11 +134,8 @@ void TableViewPrivateElement::onIncubatorSetInitialState(QObject *object)
 
 TableViewPrivate::TableViewPrivate(QQuickItem *parent)
     : QQuickItem(parent)
+    , m_tasks(std::make_unique<TableViewTaskQueue>())
 {
-    for (int i = 0; i < 1000; ++i) {
-        m_table.xAxis().append(100);
-        m_table.yAxis().append(100);
-    }
     updateGeometry();
 }
 
@@ -138,6 +149,11 @@ QQmlComponent* TableViewPrivate::cellDelegate() const
 QRect TableViewPrivate::visibleArea() const
 {
     return m_visibleArea;
+}
+
+QAbstractItemModel *TableViewPrivate::model() const
+{
+    return m_model;
 }
 
 void TableViewPrivate::setCellDelegate(QQmlComponent *cellDelegate)
@@ -158,6 +174,56 @@ void TableViewPrivate::setVisibleArea(QRect visibleArea)
     m_visibleArea = visibleArea;
     emit visibleAreaChanged(m_visibleArea);
     onVisibleAreaChanged();
+}
+
+void TableViewPrivate::setModel(QAbstractItemModel *model)
+{
+    if (m_model == model)
+        return;
+
+    if (m_model) {
+        disconnect(m_model.data(), &QAbstractItemModel::rowsAboutToBeInserted, this, &TableViewPrivate::onModelRowsAboutToBeInserted);
+        disconnect(m_model.data(), &QAbstractItemModel::rowsInserted, this, &TableViewPrivate::onModelRowsInserted);
+        disconnect(m_model.data(), &QAbstractItemModel::rowsAboutToBeRemoved, this, &TableViewPrivate::onModelRowsAboutToBeRemoved);
+        disconnect(m_model.data(), &QAbstractItemModel::rowsRemoved, this, &TableViewPrivate::onModelRowsRemoved);
+        disconnect(m_model.data(), &QAbstractItemModel::rowsAboutToBeMoved, this, &TableViewPrivate::onModelRowsAboutToBeMoved);
+        disconnect(m_model.data(), &QAbstractItemModel::rowsMoved, this, &TableViewPrivate::onModelRowsMoved);
+        disconnect(m_model.data(), &QAbstractItemModel::columnsAboutToBeInserted, this, &TableViewPrivate::onModelColumnsAboutToBeInserted);
+        disconnect(m_model.data(), &QAbstractItemModel::columnsInserted, this, &TableViewPrivate::onModelColumnsInserted);
+        disconnect(m_model.data(), &QAbstractItemModel::columnsAboutToBeRemoved, this, &TableViewPrivate::onModelColumnsAboutToBeRemoved);
+        disconnect(m_model.data(), &QAbstractItemModel::columnsRemoved, this, &TableViewPrivate::onModelColumnsRemoved);
+        disconnect(m_model.data(), &QAbstractItemModel::columnsAboutToBeMoved, this, &TableViewPrivate::onModelColumnsAboutToBeMoved);
+        disconnect(m_model.data(), &QAbstractItemModel::columnsMoved, this, &TableViewPrivate::onModelColumnsMoved);
+        disconnect(m_model.data(), &QAbstractItemModel::modelAboutToBeReset, this, &TableViewPrivate::onModelAboutToBeReset);
+        disconnect(m_model.data(), &QAbstractItemModel::modelReset, this, &TableViewPrivate::onModelReset);
+        disconnect(m_model.data(), &QAbstractItemModel::layoutAboutToBeChanged, this, &TableViewPrivate::onModelLayoutAboutToBeChanged);
+        disconnect(m_model.data(), &QAbstractItemModel::layoutChanged, this, &TableViewPrivate::onModelLayoutChanged);
+        onModelAboutToBeReset();
+    }
+
+    m_model = model;
+
+    if (m_model) {
+        connect(m_model.data(), &QAbstractItemModel::rowsAboutToBeInserted, this, &TableViewPrivate::onModelRowsAboutToBeInserted);
+        connect(m_model.data(), &QAbstractItemModel::rowsInserted, this, &TableViewPrivate::onModelRowsInserted);
+        connect(m_model.data(), &QAbstractItemModel::rowsAboutToBeRemoved, this, &TableViewPrivate::onModelRowsAboutToBeRemoved);
+        connect(m_model.data(), &QAbstractItemModel::rowsRemoved, this, &TableViewPrivate::onModelRowsRemoved);
+        connect(m_model.data(), &QAbstractItemModel::rowsAboutToBeMoved, this, &TableViewPrivate::onModelRowsAboutToBeMoved);
+        connect(m_model.data(), &QAbstractItemModel::rowsMoved, this, &TableViewPrivate::onModelRowsMoved);
+        connect(m_model.data(), &QAbstractItemModel::columnsAboutToBeInserted, this, &TableViewPrivate::onModelColumnsAboutToBeInserted);
+        connect(m_model.data(), &QAbstractItemModel::columnsInserted, this, &TableViewPrivate::onModelColumnsInserted);
+        connect(m_model.data(), &QAbstractItemModel::columnsAboutToBeRemoved, this, &TableViewPrivate::onModelColumnsAboutToBeRemoved);
+        connect(m_model.data(), &QAbstractItemModel::columnsRemoved, this, &TableViewPrivate::onModelColumnsRemoved);
+        connect(m_model.data(), &QAbstractItemModel::columnsAboutToBeMoved, this, &TableViewPrivate::onModelColumnsAboutToBeMoved);
+        connect(m_model.data(), &QAbstractItemModel::columnsMoved, this, &TableViewPrivate::onModelColumnsMoved);
+        connect(m_model.data(), &QAbstractItemModel::modelAboutToBeReset, this, &TableViewPrivate::onModelAboutToBeReset);
+        connect(m_model.data(), &QAbstractItemModel::modelReset, this, &TableViewPrivate::onModelReset);
+        connect(m_model.data(), &QAbstractItemModel::layoutAboutToBeChanged, this, &TableViewPrivate::onModelLayoutAboutToBeChanged);
+        connect(m_model.data(), &QAbstractItemModel::layoutChanged, this, &TableViewPrivate::onModelLayoutChanged);
+
+        onModelReset();
+    }
+    emit modelChanged(m_model);
 }
 
 std::unique_ptr<TableViewPrivateElement> TableViewPrivate::getOrCreateElement(Cell cell)
@@ -210,22 +276,131 @@ void TableViewPrivate::onCellDelegateChanged()
         element->createItem();
 }
 
+void TableViewPrivate::onModelRowsAboutToBeInserted(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void TableViewPrivate::onModelRowsInserted(const QModelIndex &parent, int first, int last)
+{
+    m_tasks->push([this, first, last] {;
+        for (int i = first; i <= last; ++i)
+            m_table.yAxis().insertAt(i, 100);
+        updateGeometry();
+        onVisibleAreaChanged();
+    });
+}
+
+void TableViewPrivate::onModelRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
+{
+    m_tasks->push([this, first, last]{
+        for (int i = first; i <= last; ++i)
+            m_table.yAxis().removeAt(i);
+        updateGeometry();
+        onVisibleAreaChanged();
+    });
+}
+
+void TableViewPrivate::onModelRowsRemoved(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void TableViewPrivate::onModelRowsAboutToBeMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationRow)
+{
+
+}
+
+void TableViewPrivate::onModelRowsMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationRow)
+{
+    m_tasks->push([this, sourceStart, sourceEnd, destinationRow] {
+    });
+}
+
+void TableViewPrivate::onModelColumnsAboutToBeInserted(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void TableViewPrivate::onModelColumnsInserted(const QModelIndex &parent, int first, int last)
+{
+    m_tasks->push([this, first, last] {;
+        for (int i = first; i <= last; ++i)
+            m_table.xAxis().insertAt(i, 100);
+        updateGeometry();
+        onVisibleAreaChanged();
+    });
+}
+
+void TableViewPrivate::onModelColumnsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void TableViewPrivate::onModelColumnsRemoved(const QModelIndex &parent, int first, int last)
+{
+
+}
+
+void TableViewPrivate::onModelColumnsAboutToBeMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationColumn)
+{
+
+}
+
+void TableViewPrivate::onModelColumnsMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationColumn)
+{
+
+}
+
+void TableViewPrivate::onModelAboutToBeReset()
+{
+    m_tasks->push([this]{
+        m_table.xAxis() = Axis();
+        m_table.yAxis() = Axis();
+        updateGeometry();
+        onVisibleAreaChanged();
+    });
+}
+
+void TableViewPrivate::onModelReset()
+{
+    m_tasks->push([this] {
+        if (m_model) {
+            for (int i = 0; i < m_model->rowCount(); ++i)
+                m_table.yAxis().append(100);
+            for (int i = 0; i < m_model->columnCount(); ++i)
+                m_table.xAxis().append(100);
+            updateGeometry();
+            onVisibleAreaChanged();
+        }
+    });
+}
+
+void TableViewPrivate::onModelLayoutAboutToBeChanged(const QList<QPersistentModelIndex> &parents, QAbstractItemModel::LayoutChangeHint hint)
+{
+
+}
+
+void TableViewPrivate::onModelLayoutChanged(const QList<QPersistentModelIndex> &parents, QAbstractItemModel::LayoutChangeHint hint)
+{
+
+}
+
 void TableViewPrivate::updateGeometry()
 {
     auto rect = m_table.boundingRect();
     setSize(rect.size());
 }
 
-TableViewIncubator::TableViewIncubator(TableViewPrivateElement &element)
-    : m_element(element)
-{}
-
-void TableViewIncubator::statusChanged(QQmlIncubator::Status status)
+void TableViewTaskQueue::push(TableViewTaskQueue::Task task)
 {
-    m_element.onIncubatorStatusChanged(status);
-}
-
-void TableViewIncubator::setInitialState(QObject *object)
-{
-    m_element.onIncubatorSetInitialState(object);
+    m_tasks.push(task);
+    if (m_executing)
+        return;
+    m_executing = true;
+    while (!m_tasks.empty()) {
+        m_tasks.front()();
+        m_tasks.pop();
+    }
+    m_executing = false;
 }
