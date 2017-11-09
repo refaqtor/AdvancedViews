@@ -67,6 +67,10 @@ public:
             removeAt(fromStart);
             insertAt(fromStart > to ? to : (to -1), visualLength);
             --length;
+            if (to < fromStart) {
+                ++to;
+                ++fromStart;
+            }
         }
         return true;
     }

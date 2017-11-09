@@ -303,6 +303,10 @@ void AdvancedViewsTest::testAxisMove()
         axis.move(1, 2, 0);
         test = { Range(1, 100), Range(1, 50), Range(1, 100) };
         QVERIFY(axis.m_ranges == test);
+
+        axis.move(0, 1, 3);
+        test = { Range(2, 100), Range(1, 50)};
+        QVERIFY(axis.m_ranges == test);
     }
 }
 

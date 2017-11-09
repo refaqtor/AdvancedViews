@@ -308,12 +308,14 @@ void TableViewPrivate::onModelRowsRemoved(const QModelIndex &parent, int first, 
 
 void TableViewPrivate::onModelRowsAboutToBeMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationRow)
 {
-
 }
 
 void TableViewPrivate::onModelRowsMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationRow)
 {
     m_tasks->push([this, sourceStart, sourceEnd, destinationRow] {
+        m_table.yAxis().move(sourceStart, sourceEnd, destinationRow);
+        updateGeometry();
+        onVisibleAreaChanged();
     });
 }
 
@@ -334,7 +336,12 @@ void TableViewPrivate::onModelColumnsInserted(const QModelIndex &parent, int fir
 
 void TableViewPrivate::onModelColumnsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
 {
-
+    m_tasks->push([this, first, last]{
+        for (int i = first; i <= last; ++i)
+            m_table.xAxis().removeAt(i);
+        updateGeometry();
+        onVisibleAreaChanged();
+    });
 }
 
 void TableViewPrivate::onModelColumnsRemoved(const QModelIndex &parent, int first, int last)
@@ -349,7 +356,11 @@ void TableViewPrivate::onModelColumnsAboutToBeMoved(const QModelIndex &sourcePar
 
 void TableViewPrivate::onModelColumnsMoved(const QModelIndex &sourceParent, int sourceStart, int sourceEnd, const QModelIndex &destinationParent, int destinationColumn)
 {
-
+    m_tasks->push([this, sourceStart, sourceEnd, destinationColumn] {
+        m_table.xAxis().move(sourceStart, sourceEnd, destinationColumn);
+        updateGeometry();
+        onVisibleAreaChanged();
+    });
 }
 
 void TableViewPrivate::onModelAboutToBeReset()
