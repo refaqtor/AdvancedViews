@@ -4,14 +4,16 @@
 
 namespace stdutils {
 
-auto reduce(const auto& container, const auto& callable, const auto initialValue) {
+template<typename Container, typename Callable, typename Value>
+auto reduce(const Container& container, const Callable& callable, const Value& initialValue) {
     auto result = initialValue;
     for (const auto& element : container)
         result += std::invoke(callable, element);
     return result;
 }
 
-void remove_if(auto& container, const auto& callable) {
+template<typename Container, typename Callable>
+void remove_if(Container& container, const Callable& callable) {
     auto first = std::begin(container);
     auto last = std::end(container);
     for (; first != last; ++first)
@@ -28,7 +30,8 @@ void remove_if(auto& container, const auto& callable) {
     container.erase(first, std::end(container));
 }
 
-void for_each(const auto& container, const auto& callable) {
+template<typename Container, typename Callable>
+void for_each(const Container& container, const Callable& callable) {
     for (const auto& element : container)
         std::invoke(callable, element);
 }
