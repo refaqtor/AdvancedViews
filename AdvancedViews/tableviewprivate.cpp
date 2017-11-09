@@ -404,7 +404,7 @@ void TableViewPrivate::updateGeometry()
 
 void TableViewTaskQueue::push(TableViewTaskQueue::Task task)
 {
-    m_tasks.push(task);
+    m_tasks.push(std::move(task));
     if (m_executing)
         return;
     m_executing = true;
