@@ -56,7 +56,7 @@ public:
     Cell cell() const { return m_cell; }
     void setCell(Cell c);
 
-    bool visible() const;
+    bool visible() const { return m_visible; }
     void setVisible(bool visible);
 
     void createItem();

@@ -69,18 +69,13 @@ void TableViewPrivateElement::setCell(Cell c)
 {
     m_cell = std::move(c);
     if (m_context) {
-        m_context->setContextProperty("row", c.row());
-        m_context->setContextProperty("column", c.column());
+        m_context->setContextProperty("row", m_cell.row());
+        m_context->setContextProperty("column", m_cell.column());
     }
     if (m_item) {
         m_item->setPosition(QPoint(m_cell.x(), m_cell.y()));
         m_item->setSize(QSize(m_cell.width(), m_cell.height()));
     }
-}
-
-bool TableViewPrivateElement::visible() const
-{
-    return m_visible;
 }
 
 void TableViewPrivateElement::setVisible(bool visible)
@@ -256,7 +251,11 @@ void TableViewPrivate::onVisibleAreaChanged()
     // Remove elements that are not visibile anymore
     auto isVisible = [&visibleCells] (const auto& e){ return visibleCells.find(e->cell()) != visibleCells.end(); };
     const auto it = std::partition(m_elements.begin(), m_elements.end(), isVisible);
-    std::for_each(it, m_elements.end(), [](const auto& element) { element->setVisible(false); });
+    // Make them invisible
+    std::for_each(it, m_elements.end(), [](const std::unique_ptr<TableViewPrivateElement>& element) {
+        element->setVisible(false);
+        element->setCell(Cell());
+    });
     std::move(it, m_elements.end(), std::back_inserter(m_cache));
     m_elements.erase(it, m_elements.end());
 

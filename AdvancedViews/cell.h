@@ -23,8 +23,8 @@ class Cell
 {
 public:
     constexpr Cell()
-        : m_row(0)
-        , m_column(0)
+        : m_row(-1)
+        , m_column(-1)
         , m_rect(QRect())
     {}
 
