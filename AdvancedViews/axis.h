@@ -97,35 +97,34 @@ public:
         if (pos < 0 || pos > length())
             return false;
 
-        int i = 0;
+        auto pivot = m_ranges.end();
+        int start = 0;
+        int end = 0;
+
+        // Find the range from which starting the insertion
         for (auto it = m_ranges.begin(); it != m_ranges.end(); ++it) {
-            const int start = i;
-            const int end = start + it->length();
-            if (pos == start) {
-                // prepend
-                m_ranges.insert(it, Range(count, visualLength));
-                fixRanges();
-                return true;
-            } else if (pos == end) {
-                // append after this range
-                m_ranges.insert(std::next(it), Range(count, visualLength));
-                fixRanges();
-                return true;
-            } else if (pos > start && pos < end) {
-                // Split this range in two and add the new one in the middle
-                *it = Range(pos - start, it->elementVisualLength());
-                m_ranges.insert(std::next(it), {Range(count, visualLength),
-                                                Range(end - pos, it->elementVisualLength())});
-                fixRanges();
-                return true;
-            } else {
-                // continue
-                i = end;
+            end = start + it->length();
+            if (pos >= start && pos <= end) {
+                pivot = it;
+                break;
             }
+            start = end;
         }
 
-        m_ranges.emplace_back(count, visualLength);
+        if (pos == start) {
+            // Prepend
+            m_ranges.insert(pivot, Range(count, visualLength));
+        } else if (pos == end) {
+            // Append
+            m_ranges.insert(std::next(pivot), Range(count, visualLength));
+        } else if (pos > start && pos < end) {
+            // Split this range in two and add the new one in the middle
+            *pivot = Range(pos - start, pivot->elementVisualLength());
+            m_ranges.insert(std::next(pivot), {Range(count, visualLength), Range(end - pos, pivot->elementVisualLength())});
+        }
+
         fixRanges();
+
         return true;
     }
 
