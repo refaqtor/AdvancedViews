@@ -19,7 +19,7 @@
 
 #include <algorithm>
 #include <vector>
-#include <math.h>
+#include <cmath>
 #include <numeric>
 
 #include <range.h>
@@ -54,7 +54,7 @@ class Axis
 public:
     void append(int visualLength)
     {
-        m_ranges.push_back(Range(1, visualLength));
+        m_ranges.emplace_back(1, visualLength);
         fixRanges();
     }
 
@@ -75,7 +75,7 @@ public:
         return true;
     }
 
-    bool insertAt(int pos, int visualLength)
+    bool insertAt(int pos, int visualLength, int count = 1)
     {
         if (pos < 0 || pos > length())
             return false;
@@ -86,18 +86,19 @@ public:
             const int end = start + it->length();
             if (pos == start) {
                 // prepend
-                m_ranges.insert(it, Range(1, visualLength));
+                m_ranges.insert(it, Range(count, visualLength));
                 fixRanges();
                 return true;
             } else if (pos == end) {
                 // append after this range
-                m_ranges.insert(std::next(it), Range(1, visualLength));
+                m_ranges.insert(std::next(it), Range(count, visualLength));
                 fixRanges();
                 return true;
             } else if (pos > start && pos < end) {
                 // Split this range in two and add the new one in the middle
                 *it = Range(pos - start, it->elementVisualLength());
-                m_ranges.insert(std::next(it), {Range(1, visualLength), Range(end - pos, it->elementVisualLength())});
+                m_ranges.insert(std::next(it), {Range(count, visualLength),
+                                                Range(end - pos, it->elementVisualLength())});
                 fixRanges();
                 return true;
             } else {
@@ -106,7 +107,7 @@ public:
             }
         }
 
-        m_ranges.push_back(Range(1, visualLength));
+        m_ranges.emplace_back(count, visualLength);
         fixRanges();
         return true;
     }
@@ -190,7 +191,7 @@ private:
     {
         /*
         The current implementation is for efficient since fix the ranges
-        in place. On the otherhand is far more complex. This code
+        in place. On the other hand is far more complex. This code
         snippet shows the same code in a simple but less efficient way.
 
         std::vector<Range> ranges;
@@ -246,8 +247,6 @@ private:
         // Remove all the element from pivot to end
         if (pivot != m_ranges.end())
             m_ranges.erase(pivot, last);
-
-        return;
     }
 
     std::vector<Range> m_ranges;
