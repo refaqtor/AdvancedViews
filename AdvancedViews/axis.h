@@ -18,14 +18,12 @@
 #pragma once
 
 #include <algorithm>
-#include <vector>
 #include <cmath>
 #include <numeric>
-
-#include <range.h>
-
 #include <optional>
+#include <vector>
 
+#include "range.h"
 #include "stdutils.h"
 
 struct AxisGetResult
@@ -52,13 +50,25 @@ class Axis
     friend class AdvancedViewsTest;
 
 public:
+    /**
+     * Append a new element with \p visualLength visual length
+     * @param visualLength The new element visual length
+     */
     void append(int visualLength)
     {
         m_ranges.emplace_back(1, visualLength);
         fixRanges();
     }
 
-    bool move(int fromStart, int fromEnd, int to) {
+    /**
+     * Move the element starting from \p fromStart to \p fromEnd to \to
+     * @param fromStart The first element to be removed
+     * @param fromEnd The last element to be removed
+     * @param to The position to be moved
+     * @return true on success, false otherwise
+     */
+    bool move(int fromStart, int fromEnd, int to)
+    {
         if (to >= fromStart && to <= (fromEnd + 1))
             return false;
         int length = (fromEnd + 1) - fromStart;
@@ -75,6 +85,13 @@ public:
         return true;
     }
 
+    /**
+     * Insert \p count elements starting from \p pos with \p visualLength visual length
+     * @param pos The insert position
+     * @param visualLength The elements visual length
+     * @param count The number of elements to insert
+     * @return true on success, false otherwise
+     */
     bool insertAt(int pos, int visualLength, int count = 1)
     {
         if (pos < 0 || pos > length())
@@ -112,38 +129,78 @@ public:
         return true;
     }
 
-    bool removeAt(int pos)
+    /**
+     * Remove \p count elements starting from \p pos
+     * @param pos The start element to be removed
+     * @param count The number of elements to be removed
+     * @return true on success, false otherwise
+     */
+    bool removeAt(int pos, int count = 1)
     {
-        if (pos < 0)
+        if (pos < 0 || (pos + count) > length() || count <= 0)
             return false;
+
+        // Search for the range that contains the element at `pos`
+        auto pivot = m_ranges.end();
         int i = 0;
-        for (Range& r : m_ranges) {
-            i += r.length();
+        for (auto it = m_ranges.begin(); it != m_ranges.end(); ++it) {
+            i += it->length();
             if (pos < i) {
-                r.resize(r.length() - 1);
-                fixRanges();
-                return true;
+                pivot = it;
+                break;
             }
         }
-        return false;
+
+        // If we didn't found it, return false
+        if (pivot == m_ranges.end())
+            return false;
+
+        // Remove `count` elements
+        while (pivot != m_ranges.end() && count > 0) {
+            const int num_elements = std::min(pivot->length(), count);
+            pivot->reduce(num_elements);
+            count -= num_elements;
+            pivot = std::next(pivot);
+        }
+
+        // Fix ranges, in the case we empties some range in the removal
+        fixRanges();
+
+        return count <= 0;
     }
 
+    /**
+     * The remove the element at the given \p visualPos visual position
+     * @param visualPos The visual position of the element to be removed
+     * @return true on success, false otherwise
+     */
     bool visualRemoveAt(int visualPos)
     {
         std::optional<AxisGetResult> result = visualGet(visualPos);
         return result ? removeAt(result->pos) : false;
     }
 
+    /**
+     * Return the number of elements in the axis
+     */
     int length() const
     {
         return stdutils::reduce(m_ranges, &Range::length, 0);
     }
 
+    /**
+     * Return the visual length of the axis
+     */
     int visualLength() const
     {
         return stdutils::reduce(m_ranges, &Range::visualLength, 0);
     }
 
+    /**
+     * Return the i-th element at \p pos
+     * @param pos The element pos
+     * @return The optional element at \p pos
+     */
     std::optional<AxisGetResult> get(int pos) const
     {
         if (pos < 0)
@@ -163,6 +220,11 @@ public:
         return std::optional<AxisGetResult>();
     }
 
+    /**
+     * Return the element at the given \p visualPos visual position
+     * @param visualPos The element visual position
+     * @return The optional the element at the given visual position
+     */
     std::optional<AxisGetResult> visualGet(int visualPos) const
     {
         std::optional<AxisGetResult> result;
@@ -187,6 +249,10 @@ public:
     }
 
 private:
+    /**
+     * This function fixes the whole vector of ranges by eventually
+     * removing empty ranges or merging ranges with the same visual size
+     */
     void fixRanges()
     {
         /*

@@ -117,7 +117,7 @@ void TableViewPrivateElement::onIncubatorStatusChanged(QQmlIncubator::Status sta
 
 void TableViewPrivateElement::onIncubatorSetInitialState(QObject *object)
 {
-    m_item.reset(qobject_cast<QQuickItem*>(object));
+    m_item.reset(dynamic_cast<QQuickItem*>(object));
     m_item->setParentItem(&m_table);
     m_item->setX(m_cell.x());
     m_item->setY(m_cell.y());
@@ -283,8 +283,8 @@ void TableViewPrivate::onModelRowsAboutToBeInserted(const QModelIndex &parent, i
 void TableViewPrivate::onModelRowsInserted(const QModelIndex &parent, int first, int last)
 {
     m_tasks->push([this, first, last] {
-        for (int i = first; i <= last; ++i)
-            m_table.yAxis().insertAt(i, 100);
+        const int count = last - first + 1;
+        m_table.yAxis().insertAt(first, 100, count);
         updateGeometry();
         onVisibleAreaChanged();
     });
@@ -293,8 +293,8 @@ void TableViewPrivate::onModelRowsInserted(const QModelIndex &parent, int first,
 void TableViewPrivate::onModelRowsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
 {
     m_tasks->push([this, first, last]{
-        for (int i = first; i <= last; ++i)
-            m_table.yAxis().removeAt(i);
+        const int count = last - first + 1;
+        m_table.yAxis().removeAt(first, count);
         updateGeometry();
         onVisibleAreaChanged();
     });
@@ -326,8 +326,8 @@ void TableViewPrivate::onModelColumnsAboutToBeInserted(const QModelIndex &parent
 void TableViewPrivate::onModelColumnsInserted(const QModelIndex &parent, int first, int last)
 {
     m_tasks->push([this, first, last] {;
-        for (int i = first; i <= last; ++i)
-            m_table.xAxis().insertAt(i, 100);
+        const int count = last - first + 1;
+        m_table.xAxis().insertAt(first, 100, count);
         updateGeometry();
         onVisibleAreaChanged();
     });
@@ -336,8 +336,8 @@ void TableViewPrivate::onModelColumnsInserted(const QModelIndex &parent, int fir
 void TableViewPrivate::onModelColumnsAboutToBeRemoved(const QModelIndex &parent, int first, int last)
 {
     m_tasks->push([this, first, last]{
-        for (int i = first; i <= last; ++i)
-            m_table.xAxis().removeAt(i);
+        const int count = last - first + 1;
+        m_table.xAxis().removeAt(first, count);
         updateGeometry();
         onVisibleAreaChanged();
     });

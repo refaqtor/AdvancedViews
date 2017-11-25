@@ -61,6 +61,17 @@ public:
         m_numElements = size;
     }
 
+    constexpr void enlarge(int amount)
+    {
+        m_numElements += amount;
+    }
+
+    constexpr void reduce(int amount)
+    {
+        amount = amount > m_numElements ? m_numElements : amount;
+        m_numElements -= amount;
+    }
+
     constexpr void setLength(int numElements)
     {
         m_numElements = numElements;
