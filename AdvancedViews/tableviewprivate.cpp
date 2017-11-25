@@ -282,7 +282,7 @@ void TableViewPrivate::onModelRowsAboutToBeInserted(const QModelIndex &parent, i
 
 void TableViewPrivate::onModelRowsInserted(const QModelIndex &parent, int first, int last)
 {
-    m_tasks->push([this, first, last] {;
+    m_tasks->push([this, first, last] {
         for (int i = first; i <= last; ++i)
             m_table.yAxis().insertAt(i, 100);
         updateGeometry();
