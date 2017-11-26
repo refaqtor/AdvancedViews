@@ -49,6 +49,19 @@ class Axis
 {
     friend class AdvancedViewsTest;
 
+    struct FindRangeResult
+    {
+        using Iterator = std::vector<Range>::iterator;
+
+        FindRangeResult(int start, Iterator iterator)
+                : start(start)
+                , iterator(iterator)
+        {}
+
+        int start;
+        Iterator iterator;
+    };
+
 public:
     /**
      * Append a new element with \p visualLength visual length
@@ -140,26 +153,23 @@ public:
             return false;
 
         // Search for the range that contains the element at `pos`
-        auto pivot = m_ranges.end();
-        int i = 0;
-        for (auto it = m_ranges.begin(); it != m_ranges.end(); ++it) {
-            i += it->length();
-            if (pos < i) {
-                pivot = it;
-                break;
-            }
-        }
+        std::optional<FindRangeResult> find_result = find_range_that_contains_index(pos);
 
         // If we didn't found it, return false
-        if (pivot == m_ranges.end())
+        if (!find_result)
             return false;
+
+        std::vector<Range>::iterator& pivot = find_result->iterator;
+        int& start = find_result->start;
+        int offset = pos - start;
 
         // Remove `count` elements
         while (pivot != m_ranges.end() && count > 0) {
-            const int num_elements = std::min(pivot->length(), count);
+            const int num_elements = std::min(pivot->length() - offset, count);
             pivot->reduce(num_elements);
             count -= num_elements;
             pivot = std::next(pivot);
+            offset = 0;
         }
 
         // Fix ranges, in the case we empties some range in the removal
@@ -312,6 +322,19 @@ private:
         // Remove all the element from pivot to end
         if (pivot != m_ranges.end())
             m_ranges.erase(pivot, last);
+    }
+
+    std::optional<FindRangeResult> find_range_that_contains_index(int pos) {
+        int start = 0;
+        auto it = m_ranges.begin();
+        while (it != m_ranges.end()) {
+            const int end = start + it->length();
+            if (pos < end)
+                return FindRangeResult(start, it);
+            it = std::next(it);
+            start = end;
+        }
+        return std::optional<FindRangeResult>();
     }
 
     std::vector<Range> m_ranges;
