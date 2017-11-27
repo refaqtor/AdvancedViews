@@ -107,37 +107,39 @@ public:
      */
     bool insertAt(int pos, int visualLength, int count = 1)
     {
-        if (pos < 0 || pos > length())
+        const int length = this->length();
+
+        if (pos < 0 || pos > length)
             return false;
 
-        auto pivot = m_ranges.end();
-        int start = 0;
-        int end = 0;
+        int start = -1;
+        int end = -1;
+        std::vector<Range>::iterator pivot;
 
-        // Find the range from which starting the insertion
-        for (auto it = m_ranges.begin(); it != m_ranges.end(); ++it) {
-            end = start + it->length();
-            if (pos >= start && pos <= end) {
-                pivot = it;
-                break;
-            }
-            start = end;
+        if (pos == length) {
+            start = length;
+            end = start + count;
+            pivot = m_ranges.end();
+        } else if (auto result = find_range_that_contains_index(pos)) {
+            start = result->start;
+            end = start + result->iterator->length();
+            pivot = result->iterator;
+        } else {
+            return false;
         }
 
         if (pos == start) {
-            // Prepend
+            // Insert the range
             m_ranges.insert(pivot, Range(count, visualLength));
-        } else if (pos == end) {
-            // Append
-            m_ranges.insert(std::next(pivot), Range(count, visualLength));
-        } else if (pos > start && pos < end) {
+        } else if (pos > start && pos < end){
             // Split this range in two and add the new one in the middle
             *pivot = Range(pos - start, pivot->elementVisualLength());
-            m_ranges.insert(std::next(pivot), {Range(count, visualLength), Range(end - pos, pivot->elementVisualLength())});
+            m_ranges.insert(std::next(pivot), { Range(count, visualLength), Range(end - pos, pivot->elementVisualLength()) });
+        } else {
+            return false;
         }
 
         fixRanges();
-
         return true;
     }
 
