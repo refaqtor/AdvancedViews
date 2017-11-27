@@ -47,19 +47,20 @@ struct AxisGetResult
 
 class Axis
 {
+    using RangeVector = std::vector<Range>;
+    using RangeIterator = RangeVector::iterator;
+
     friend class AdvancedViewsTest;
 
     struct FindRangeResult
     {
-        using Iterator = std::vector<Range>::iterator;
-
-        FindRangeResult(int start, Iterator iterator)
+        FindRangeResult(int start, RangeIterator iterator)
                 : start(start)
-                , iterator(iterator)
+                , iterator(std::move(iterator))
         {}
 
         int start;
-        Iterator iterator;
+        RangeIterator iterator;
     };
 
 public:
@@ -69,8 +70,10 @@ public:
      */
     void append(int visualLength)
     {
-        m_ranges.emplace_back(1, visualLength);
-        fixRanges();
+        if (auto range = m_ranges.rbegin(); !m_ranges.empty() && range->elementVisualLength() == visualLength)
+            range->enlarge(1);
+        else
+            m_ranges.emplace_back(1, visualLength);
     }
 
     /**
@@ -134,7 +137,8 @@ public:
         } else if (pos > start && pos < end){
             // Split this range in two and add the new one in the middle
             *pivot = Range(pos - start, pivot->elementVisualLength());
-            m_ranges.insert(std::next(pivot), { Range(count, visualLength), Range(end - pos, pivot->elementVisualLength()) });
+            m_ranges.insert(std::next(pivot), { Range(count, visualLength),
+                                                Range(end - pos, pivot->elementVisualLength()) });
         } else {
             return false;
         }
@@ -266,6 +270,11 @@ private:
      */
     void fixRanges()
     {
+        fixRanges(m_ranges.begin(), m_ranges.end());
+    }
+
+    void fixRanges(RangeIterator first, RangeIterator last)
+    {
         /*
         The current implementation is for efficient since fix the ranges
         in place. On the other hand is far more complex. This code
@@ -286,8 +295,6 @@ private:
         std::swap(m_ranges, ranges);
         */
 
-        auto first = m_ranges.begin();
-        auto last = m_ranges.end();
         auto previous = m_ranges.end();
         auto pivot = m_ranges.end();
 
@@ -339,5 +346,5 @@ private:
         return std::optional<FindRangeResult>();
     }
 
-    std::vector<Range> m_ranges;
+    RangeVector m_ranges;
 };

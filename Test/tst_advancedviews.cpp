@@ -45,6 +45,8 @@ private slots:
     void testAxisInsertAt();
     void testAxisMove();
 
+    void benchmarkTestAppend();
+
     void testTableBoundingRect();
     void testTableCellsInRect();
 };
@@ -68,6 +70,12 @@ void AdvancedViewsTest::testAxisAppend()
     QVERIFY(axis.m_ranges.size() == 2);
     QCOMPARE(axis.m_ranges[0], Range(2, 100));
     QCOMPARE(axis.m_ranges[1], Range(1, 50));
+}
+
+void AdvancedViewsTest::benchmarkTestAppend()
+{
+    Axis axis;
+    QBENCHMARK { axis.append(100); };
 }
 
 void AdvancedViewsTest::testAxisGet()
